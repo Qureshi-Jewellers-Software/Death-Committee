@@ -337,7 +337,7 @@ const D={
 'Raseed':['رسید','Receipt'],
 'Member card':['ممبر کارڈ','Member card'],
 'Wasooli wale ka hisaab':['وصولی والوں کا حساب','Collected by person'],
-'Backup liye 7 din se zyada ho gaye. Abhi backup lein.':['بیک اپ لیے 7 دن سے زیادہ ہو گئے۔ ابھی بیک اپ لیں۔','Over 7 days since the last backup. Take one now.'],
+'Backup liye 1 mahina ho gaya. Abhi backup lein.':['بیک اپ لیے ایک مہینہ ہو گیا۔ ابھی بیک اپ لیں۔','It has been a month since the last backup. Take one now.'],
 'App phone par install karein':['ایپ فون پر انسٹال کریں','Install app on phone'],
 'Chrome menu (⋮) mein "Add to Home screen" dabayein':['کروم مینو (⋮) میں "Add to Home screen" دبائیں','In Chrome menu (⋮) tap "Add to Home screen"'],
 'Jis ne paise liye':['جس نے پیسے لیے','Received by'],
@@ -551,7 +551,7 @@ V.home=()=>{
   const recent=list('payment').sort((a,b)=>((b.date||'')+(b.t||'')).localeCompare((a.date||'')+(a.t||''))).slice(0,6);
   const tiles=[["go('pay');payForm()",'💵','Chanda lein'],["go('members');memberForm()",'➕','Naya member'],["go('deaths')",'🕊️','Wafat'],["go('loans')",'🤝','Loan'],
     ["go('late')",'⏰','Baqaya'],["go('expenses')",'🧾','Kharche'],["go('reports')",'📊','Excel'],["go('settings')",'⚙️','Settings']];
-  const ab=accBal(),oldBk=DEMO&&(!s.lastBackup||(Date.now()-new Date(s.lastBackup))/864e5>7)&&ROWS.length>3;
+  const ab=accBal(),oldBk=DEMO&&(!s.lastBackup||(Date.now()-new Date(s.lastBackup))/864e5>30)&&ROWS.length>3;
   $('#view').innerHTML=`
   <div class="bal"><div class="lbl">${L('Committee ke paas kul raqam')}</div><div class="amt" style="${t.bal<0?'color:var(--red)':''}">${rs(t.bal)}</div>
    <div class="row"><div class="mini"><b>${rs(ab.cash)}</b><span>💵 ${L('Cash (haath mein)')}</span></div>
@@ -559,7 +559,7 @@ V.home=()=>{
    <div class="row"><div class="mini"><b class="amt-g">${rs(mt.pay+mt.spay+mt.fine)}</b><span>${L('Is mahine chanda')}</span></div>
    <div class="mini"><b class="amt-r">${rs(mt.out)}</b><span>${L('Is mahine kharch')}</span></div></div></div>
   <div class="wrap">
-  ${oldBk?`<div class="card" style="background:#fff3e2;color:#8a5200" onclick="backup()">⚠️ ${L('Backup liye 7 din se zyada ho gaye. Abhi backup lein.')} ⬇️</div>`:''}
+  ${oldBk?`<div class="card" style="background:#fff3e2;color:#8a5200" onclick="backup()">⚠️ ${L('Backup liye 1 mahina ho gaya. Abhi backup lein.')} ⬇️</div>`:''}
   <div class="grid">${tiles.map(([f,i,l])=>`<div class="tile" onclick="${f}"><div class="ic">${i}</div>${L(l)}</div>`).join('')}</div>
   <div class="card" onclick="go('late')" style="cursor:pointer">
    <div class="item"><div><div class="n">${mLabel(m)} ${L('ka baqaya')}</div><div class="s">${due.length} ${L('members ne abhi poora nahi diya')} · ${late?L('tareekh guzar gayi'):L('aakhri tareekh')+' '+s.dueDay}</div></div>
