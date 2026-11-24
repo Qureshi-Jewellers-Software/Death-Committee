@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#0a9a4a">
+<title>Death Committee</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--g:#0a9a4a;--gd:#067a39;--gl:#e7f7ee;--bg:#f2f4f3;--tx:#1d2b24;--mut:#6b7a72;--red:#d93838;--redl:#fdecec;--or:#e98a15;--card:#fff}
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{background:var(--bg);color:var(--tx);padding-bottom:78px;font-size:15px}
+header{background:linear-gradient(135deg,var(--g),var(--gd));color:#fff;padding:16px 16px 54px;border-radius:0 0 22px 22px}
+header .top{display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:18px;font-weight:700}
+header small{opacity:.85}
+.bal{background:#fff;color:var(--tx);margin:-42px 14px 12px;border-radius:16px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.bal .lbl{color:var(--mut);font-size:13px}
+.bal .amt{font-size:28px;font-weight:800;color:var(--gd);margin-top:2px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.mini{background:var(--gl);border-radius:12px;padding:10px;margin-top:10px}
+.mini b{display:block;font-size:16px}.mini span{font-size:12px;color:var(--mut)}
+.wrap{padding:0 14px}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.tile{background:#fff;border-radius:14px;padding:12px 4px;text-align:center;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.05);cursor:pointer}
+.tile .ic{width:42px;height:42px;border-radius:50%;background:var(--gl);color:var(--gd);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:20px}
+h2{font-size:16px;margin:14px 0 8px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #eef1ef}
+.item:last-child{border-bottom:0}
+.item .n{font-weight:600}.item .s{font-size:12px;color:var(--mut)}
+.amt-g{color:var(--gd);font-weight:700}.amt-r{color:var(--red);font-weight:700}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--gl);color:var(--gd);white-space:nowrap}
+.badge.r{background:var(--redl);color:var(--red)}.badge.o{background:#fff3e2;color:var(--or)}
+button{border:0;border-radius:10px;padding:11px 14px;font-size:15px;font-weight:600;cursor:pointer;background:var(--g);color:#fff}
+button.sec{background:var(--gl);color:var(--gd)}button.red{background:var(--red)}button.wa{background:#25d366}
+button.sm{padding:6px 10px;font-size:13px}
+button.full{width:100%;margin-top:8px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #d6ddd9;border-radius:10px;font-size:15px;margin:4px 0 10px;background:#fff}
+label{font-size:13px;color:var(--mut)}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;display:flex;box-shadow:0 -2px 10px rgba(0,0,0,.07);z-index:5}
+nav a{flex:1;text-align:center;padding:8px 0 10px;font-size:11px;color:var(--mut);text-decoration:none;cursor:pointer}
+nav a .ic{font-size:20px;display:block}
+nav a.on{color:var(--g);font-weight:700}
+.fab{position:fixed;right:18px;bottom:88px;width:56px;height:56px;border-radius:50%;font-size:28px;padding:0;box-shadow:0 4px 12px rgba(10,154,74,.4);z-index:6}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;z-index:10}
+.modal.on{display:flex}
+.sheet{background:#fff;width:100%;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px}
+.sheet h3{margin-bottom:12px}
+.search{margin:0 0 10px}
+.tabs{display:flex;gap:6px;margin-bottom:10px;overflow:auto}
+.tabs span{padding:7px 12px;border-radius:20px;background:#fff;font-size:13px;white-space:nowrap;cursor:pointer}
+.tabs span.on{background:var(--g);color:#fff}
+.empty{text-align:center;color:var(--mut);padding:24px 0}
+.demo{background:#fff3e2;color:#8a5200;font-size:12px;text-align:center;padding:6px}
+#login{max-width:380px;margin:60px auto;padding:0 18px}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#1d2b24;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;display:none;z-index:20}
+.chk{display:flex;align-items:center;gap:8px;margin-bottom:10px}.chk input{width:auto;margin:0}
+</style>
+</head>
+<body>
+
+<!-- ===== SETTINGS FOR SUPABASE: fill these two lines ===== -->
+<script>
+const SUPABASE_URL = "";   // e.g. https://xxxx.supabase.co
+const SUPABASE_KEY = "";   // publishable (anon) key
+</script>
+
+<div id="login" style="display:none">
+  <h1 style="color:var(--gd);margin-bottom:6px">Death Committee</h1>
+  <p style="color:var(--mut);margin-bottom:16px">Login karein</p>
+  <label>Email</label><input id="lemail" type="email">
+  <label>Password</label><input id="lpass" type="password">
+  <button class="full" onclick="doLogin()">Login</button>
+  <p id="lerr" style="color:var(--red);margin-top:10px"></p>
+</div>
+
+<div id="app" style="display:none">
+  <div id="demoBar" class="demo" style="display:none">Demo mode: data sirf is phone par hai. Supabase jorne ke baad sab online save hoga.</div>
+  <header>
+    <div class="top">
+      <div><h1 id="cName">Death Committee</h1><small id="todayTxt"></small></div>
+      <button class="sm sec" onclick="go('more')">☰</button>
+    </div>
+  </header>
+  <main id="view"></main>
+  <button class="fab" id="fab" onclick="fabAct()">+</button>
+  <nav>
+    <a data-v="home" onclick="go('home')"><span class="ic">🏠</span>Home</a>
+    <a data-v="members" onclick="go('members')"><span class="ic">👥</span>Members</a>
+    <a data-v="pay" onclick="go('pay')"><span class="ic">💵</span>Chanda</a>
+    <a data-v="late" onclick="go('late')"><span class="ic">⏰</span>Baqaya</a>
+    <a data-v="more" onclick="go('more')"><span class="ic">☰</span>Mazeed</a>
+  </nav>
+</div>
+
+<div class="modal" id="modal" onclick="if(event.target===this)closeM()"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= DATA LAYER ================= */
+let sb=null, DEMO=!SUPABASE_URL, ROWS=[];
+const LS='dc_records_v1';
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function list(kind){return ROWS.filter(r=>r.kind===kind).map(r=>({...r.data,id:r.id}))}
+function get(id){const r=ROWS.find(x=>x.id===id);return r?{...r.data,id:r.id}:null}
+async function save(kind,obj){
+  const id=obj.id||uid(); const data={...obj}; delete data.id;
+  const row={id,kind,data};
+  const i=ROWS.findIndex(r=>r.id===id); if(i>=0)ROWS[i]=row; else ROWS.push(row);
+  if(DEMO) localStorage.setItem(LS,JSON.stringify(ROWS));
+  else { const {error}=await sb.from('records').upsert({id,kind,data,updated_at:new Date().toISOString()}); if(error){alert('Save nahi hua: '+error.message);} }
+  return id;
+}
+async function del(id){
+  ROWS=ROWS.filter(r=>r.id!==id);
+  if(DEMO) localStorage.setItem(LS,JSON.stringify(ROWS));
+  else { const {error}=await sb.from('records').delete().eq('id',id); if(error)alert(error.message); }
+}
+async function loadAll(){
+  if(DEMO){ROWS=JSON.parse(localStorage.getItem(LS)||'[]');return}
+  let all=[],from=0;
+  while(true){const {data,error}=await sb.from('records').select('id,kind,data').range(from,from+999);
+    if(error){alert(error.message);break} all=all.concat(data); if(data.length<1000)break; from+=1000;}
+  ROWS=all;
+}
+async function start(){
+  if(!DEMO){
+    sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    const {data}=await sb.auth.getSession();
+    if(!data.session){document.getElementById('login').style.display='block';return}
+  }
+  await loadAll(); boot();
+}
+async function doLogin(){
+  const {error}=await sb.auth.signInWithPassword({email:lemail.value.trim(),password:lpass.value});
+  if(error){lerr.textContent='Email ya password ghalat hai';return}
+  document.getElementById('login').style.display='none'; await loadAll(); boot();
+}
+async function logout(){ if(sb) await sb.auth.signOut(); location.reload(); }
+
+/* ================= HELPERS ================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rs=n=>'Rs '+Math.round(+n||0).toLocaleString('en-PK');
+const today=()=>new Date().toISOString().slice(0,10);
+const ym=d=>(d||today()).slice(0,7);
+const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const mLabel=m=>{const [y,mm]=m.split('-');return MN[+mm-1]+' '+y};
+const fd=d=>{if(!d)return'';const x=new Date(d);return x.getDate()+' '+MN[x.getMonth()]+' '+x.getFullYear()};
+function addM(m,n){let [y,mm]=m.split('-').map(Number);mm+=n;while(mm>12){mm-=12;y++}while(mm<1){mm+=12;y--}return y+'-'+String(mm).padStart(2,'0')}
+function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2000)}
+function S(){const s=list('settings')[0]||{};return {id:s.id,name:s.name||'Death Committee',dueDay:+s.dueDay||10,defAmount:+s.defAmount||500,phone:s.phone||'',id2:s.id}}
+function waNum(p){p=String(p||'').replace(/\D/g,'');if(p.startsWith('0'))p='92'+p.slice(1);return p}
+function wa(phone,msg){window.open('https://wa.me/'+waNum(phone)+'?text='+encodeURIComponent(msg),'_blank')}
+function memName(id){const m=get(id);return m?m.name:'(hata diya gaya)'}
+function memberOpts(sel){return list('member').sort((a,b)=>a.name.localeCompare(b.name)).map(m=>`<option value="${m.id}" ${m.id===sel?'selected':''}>${esc(m.no?m.no+' - ':'')}${esc(m.name)}</option>`).join('')}
+function openM(html){$('#sheet').innerHTML=html;$('#modal').classList.add('on')}
+function closeM(){$('#modal').classList.remove('on')}
+const val=id=>document.getElementById(id).value.trim();
+
+/* ================= CALCULATIONS ================= */
+function totals(from,to){ // dates inclusive, YYYY-MM-DD; null = all
+  const inR=d=>(!from||d>=from)&&(!to||d<=to);
+  const pay=list('payment').filter(p=>inR(p.date)).reduce((a,p)=>a+(+p.amount||0),0);
+  const inc=list('income').filter(p=>inR(p.date)).reduce((a,p)=>a+(+p.amount||0),0);
+  const lr=list('loanpay').filter(p=>inR(p.date)).reduce((a,p)=>a+(+p.amount||0),0);
+  const dth=list('death').filter(p=>inR(p.date)).reduce((a,p)=>a+(+p.amount||0),0);
+  const ln=list('loan').filter(p=>inR(p.date)).reduce((a,p)=>a+(+p.amount||0),0);
+  const exp=list('expense').filter(p=>inR(p.date)).reduce((a,p)=>a+(+p.amount||0),0);
+  return {pay,inc,lr,dth,ln,exp,in:pay+inc+lr,out:dth+ln+exp,bal:pay+inc+lr-dth-ln-exp};
+}
+function paidFor(memberId,month){return list('payment').filter(p=>p.member===memberId&&p.month===month).reduce((a,p)=>a+(+p.amount||0),0)}
+function dueList(month){ // members who have not fully paid for month
+  return list('member').filter(m=>m.active!==false&&(!m.joined||ym(m.joined)<=month)).map(m=>{
+    const amt=+m.amount||S().defAmount, paid=paidFor(m.id,month);
+    return {m,amt,paid,left:amt-paid};
+  }).filter(x=>x.left>0);
+}
+function memberArrears(m){ // all unpaid months from joining till current month
+  const start=ym(m.joined||today()), cur=ym(); let mm=start, out=[];
+  while(mm<=cur){const amt=+m.amount||S().defAmount,left=amt-paidFor(m.id,mm);if(left>0)out.push({month:mm,left});mm=addM(mm,1)}
+  return out;
+}
+function loanLeft(l){return (+l.amount||0)-list('loanpay').filter(p=>p.loan===l.id).reduce((a,p)=>a+(+p.amount||0),0)}
+
+/* ================= NAV ================= */
+let CUR='home', FILT={};
+function go(v){CUR=v;document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));
+  $('#fab').style.display=['members','pay','deaths','loans','expenses','income'].includes(v)?'block':'none';
+  (V[v]||V.home)(); window.scrollTo(0,0);}
+function fabAct(){({members:()=>memberForm(),pay:()=>payForm(),deaths:()=>deathForm(),loans:()=>loanForm(),expenses:()=>expForm('expense'),income:()=>expForm('income')})[CUR]?.()}
+function boot(){$('#app').style.display='block';$('#demoBar').style.display=DEMO?'block':'none';
+  $('#cName').textContent=S().name;$('#todayTxt').textContent=fd(today());go('home');}
+
+const V={};
+/* ---------- HOME ---------- */
+V.home=()=>{
+  const t=totals(), m=ym(), s=S();
+  const mt=totals(m+'-01',m+'-31');
+  const due=dueList(m), late=new Date().getDate()>s.dueDay;
+  const recent=list('payment').sort((a,b)=>(b.date+b.t||'').localeCompare(a.date+a.t||'')).slice(0,6);
+  $('#view').innerHTML=`
+  <div class="bal"><div class="lbl">Committee ke paas kul raqam</div><div class="amt" style="${t.bal<0?'color:var(--red)':''}">${rs(t.bal)}</div>
+   <div class="row"><div class="mini"><b class="amt-g">${rs(mt.pay)}</b><span>Is mahine chanda</span></div>
+   <div class="mini"><b class="amt-r">${rs(mt.out)}</b><span>Is mahine kharch</span></div></div></div>
+  <div class="wrap">
+  <div class="grid">
+   <div class="tile" onclick="go('pay');payForm()"><div class="ic">💵</div>Chanda lein</div>
+   <div class="tile" onclick="go('members');memberForm()"><div class="ic">➕</div>Naya member</div>
+   <div class="tile" onclick="go('deaths')"><div class="ic">🕊️</div>Wafat</div>
+   <div class="tile" onclick="go('loans')"><div class="ic">🤝</div>Loan</div>
+   <div class="tile" onclick="go('late')"><div class="ic">⏰</div>Baqaya</div>
+   <div class="tile" onclick="go('expenses')"><div class="ic">🧾</div>Kharche</div>
+   <div class="tile" onclick="go('reports')"><div class="ic">📊</div>Excel</div>
+   <div class="tile" onclick="go('settings')"><div class="ic">⚙️</div>Settings</div>
+  </div>
+  <div class="card" onclick="go('late')" style="cursor:pointer">
+   <div class="item"><div><div class="n">${mLabel(m)} ka baqaya</div><div class="s">${due.length} members ne abhi poora nahi diya ${late?'· tareekh guzar gayi':'· aakhri tareekh '+s.dueDay}</div></div>
+   <span class="badge ${late&&due.length?'r':'o'}">${rs(due.reduce((a,x)=>a+x.left,0))}</span></div>
+  </div>
+  <div class="row" style="margin-bottom:10px">
+   <div class="card" style="margin:0"><div class="s" style="color:var(--mut);font-size:12px">Members</div><b>${list('member').filter(x=>x.active!==false).length}</b></div>
+   <div class="card" style="margin:0"><div class="s" style="color:var(--mut);font-size:12px">Loan baqi</div><b class="amt-r">${rs(list('loan').reduce((a,l)=>a+loanLeft(l),0))}</b></div>
+  </div>
+  <h2>Haal hi ke chande</h2>
+  <div class="card">${recent.length?recent.map(payItem).join(''):'<div class="empty">Abhi koi chanda nahi</div>'}</div>
+  </div>`;
+};
+
+/* ---------- MEMBERS ---------- */
+V.members=()=>{
+  const q=(FILT.mq||'').toLowerCase();
+  const ms=list('member').filter(m=>!q||(m.name+' '+(m.phone||'')+' '+(m.no||'')+' '+(m.cnic||'')).toLowerCase().includes(q)).sort((a,b)=>(+a.no||1e9)-(+b.no||1e9)||a.name.localeCompare(b.name));
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">Kul members</div><div class="amt">${list('member').length}</div></div>
+  <div class="wrap"><input class="search" placeholder="🔍 Naam, phone ya number se dhoondein" value="${esc(FILT.mq||'')}" oninput="FILT.mq=this.value;V.members();this.focus();this.setSelectionRange(9999,9999)">
+  <div class="card">${ms.length?ms.map(m=>{const ar=memberArrears(m);return `<div class="item" onclick="memberView('${m.id}')" style="cursor:pointer">
+   <div><div class="n">${esc(m.no?m.no+'. ':'')}${esc(m.name)}</div><div class="s">${esc(m.phone||'')} · ${rs(m.amount||S().defAmount)}/mahina</div></div>
+   ${m.active===false?'<span class="badge o">Band</span>':ar.length?`<span class="badge r">${ar.length} mahine baqi</span>`:'<span class="badge">Clear</span>'}</div>`}).join(''):'<div class="empty">Koi member nahi. Neeche + dabayein</div>'}</div></div>`;
+};
+function memberForm(id){
+  const m=id?get(id):{amount:S().defAmount,joined:today(),active:true,no:(Math.max(0,...list('member').map(x=>+x.no||0))+1)};
+  openM(`<h3>${id?'Member badlein':'Naya member'}</h3>
+  <div class="row"><div><label>Member No.</label><input id="f_no" value="${esc(m.no||'')}"></div><div><label>Mahana chanda (Rs)</label><input id="f_amount" type="number" value="${esc(m.amount)}"></div></div>
+  <label>Naam *</label><input id="f_name" value="${esc(m.name||'')}">
+  <label>Walid / Shohar ka naam</label><input id="f_father" value="${esc(m.father||'')}">
+  <label>Phone (WhatsApp)</label><input id="f_phone" type="tel" value="${esc(m.phone||'')}" placeholder="03xxxxxxxxx">
+  <label>CNIC</label><input id="f_cnic" value="${esc(m.cnic||'')}">
+  <label>Ghar ka pata</label><input id="f_address" value="${esc(m.address||'')}">
+  <label>Ghar ke afraad (jin ko cover milega)</label><textarea id="f_family" rows="3" placeholder="Biwi: ..., Beta: ...">${esc(m.family||'')}</textarea>
+  <label>Shamil hone ki tareekh</label><input id="f_joined" type="date" value="${esc(m.joined||today())}">
+  <div class="chk"><input type="checkbox" id="f_active" ${m.active!==false?'checked':''}><label for="f_active">Member chalu hai (active)</label></div>
+  <button class="full" onclick="saveMember('${id||''}')">Save</button>
+  ${id?`<button class="full red" onclick="if(confirm('Member delete karein?')){del('${id}');closeM();go('members')}">Delete</button>`:''}
+  <button class="full sec" onclick="closeM()">Wapas</button>`);
+}
+async function saveMember(id){
+  if(!val('f_name'))return alert('Naam likhein');
+  await save('member',{id:id||undefined,no:val('f_no'),name:val('f_name'),father:val('f_father'),phone:val('f_phone'),cnic:val('f_cnic'),address:val('f_address'),family:val('f_family'),joined:val('f_joined'),amount:+val('f_amount')||S().defAmount,active:$('#f_active').checked});
+  closeM();toast('Save ho gaya');go(CUR);
+}
+function memberView(id){
+  const m=get(id),ar=memberArrears(m);
+  const pays=list('payment').filter(p=>p.member===id).sort((a,b)=>b.month.localeCompare(a.month));
+  const lns=list('loan').filter(l=>l.member===id);
+  openM(`<h3>${esc(m.name)}</h3>
+  <div class="s" style="color:var(--mut);margin-bottom:8px">No. ${esc(m.no||'-')} · ${esc(m.phone||'')} · CNIC ${esc(m.cnic||'-')}<br>${esc(m.address||'')}<br>Shamil: ${fd(m.joined)} · ${rs(m.amount)}/mahina</div>
+  ${m.family?`<div class="card" style="background:var(--gl)"><b>Ghar ke afraad</b><div style="white-space:pre-wrap;font-size:14px">${esc(m.family)}</div></div>`:''}
+  <div class="card"><b>Baqaya: <span class="amt-r">${rs(ar.reduce((a,x)=>a+x.left,0))}</span></b>
+  <div class="s" style="color:var(--mut);font-size:13px">${ar.map(x=>mLabel(x.month)).join(', ')||'Sab clear'}</div></div>
+  <div class="row"><button class="sec" onclick="payForm(null,'${id}')">💵 Chanda</button><button class="wa" onclick="remind('${id}')">WhatsApp</button></div>
+  <h2>Chande (${pays.length})</h2><div class="card">${pays.map(payItem).join('')||'<div class="empty">Koi nahi</div>'}</div>
+  ${lns.length?`<h2>Loan</h2><div class="card">${lns.map(l=>`<div class="item"><div><div class="n">${rs(l.amount)}</div><div class="s">${fd(l.date)}</div></div><span class="badge r">${rs(loanLeft(l))} baqi</span></div>`).join('')}</div>`:''}
+  <button class="full" onclick="memberForm('${id}')">✏️ Badlein</button><button class="full sec" onclick="closeM()">Wapas</button>`);
+}
+function remind(id){
+  const m=get(id),ar=memberArrears(m),s=S();
+  if(!m.phone)return alert('Is member ka phone number nahi hai');
+  const msg=`Assalam o Alaikum ${m.name} sahab,\n${s.name} ki taraf se yaad-dihani:\nAap ka chanda baqi hai: ${ar.map(x=>mLabel(x.month)+' ('+rs(x.left)+')').join(', ')}\nKul: ${rs(ar.reduce((a,x)=>a+x.left,0))}\nMehrbani farma kar jald jama karwa dein. JazakAllah`;
+  wa(m.phone,msg);
+}
+
+/* ---------- PAYMENTS ---------- */
+function payItem(p){return `<div class="item" onclick="payView('${p.id}')" style="cursor:pointer"><div><div class="n">${esc(memName(p.member))}</div><div class="s">${mLabel(p.month)} · ${fd(p.date)} · ${p.method==='online'?'Online'+(p.txn?' ('+esc(p.txn)+')':''):'Cash'}</div></div><span class="amt-g">${rs(p.amount)}</span></div>`}
+V.pay=()=>{
+  const m=FILT.pm||ym();
+  const ps=list('payment').filter(p=>p.month===m).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const cash=ps.filter(p=>p.method!=='online').reduce((a,p)=>a+(+p.amount||0),0), onl=ps.filter(p=>p.method==='online').reduce((a,p)=>a+(+p.amount||0),0);
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">${mLabel(m)} ka chanda</div><div class="amt">${rs(cash+onl)}</div>
+   <div class="row"><div class="mini"><b>${rs(cash)}</b><span>Cash</span></div><div class="mini"><b>${rs(onl)}</b><span>Online</span></div></div></div>
+  <div class="wrap"><label>Mahina</label><input type="month" value="${m}" onchange="FILT.pm=this.value;V.pay()">
+  <div class="card">${ps.length?ps.map(payItem).join(''):'<div class="empty">Is mahine koi chanda nahi</div>'}</div></div>`;
+};
+function payForm(id,mem,month){
+  const p=id?get(id):{member:mem||'',date:today(),month:month||ym(),method:'cash'};
+  const m=p.member?get(p.member):null;
+  openM(`<h3>${id?'Chanda badlein':'Chanda jama karein'}</h3>
+  <label>Member *</label><select id="f_member" onchange="payAmt()"><option value="">-- chunein --</option>${memberOpts(p.member)}</select>
+  <div class="row"><div><label>Kis mahine ka</label><input id="f_month" type="month" value="${p.month}"></div>
+  ${id?'':`<div><label>Kitne mahine</label><select id="f_count" onchange="payAmt()">${[1,2,3,4,5,6,12].map(n=>`<option>${n}</option>`).join('')}</select></div>`}</div>
+  <label>Raqam (har mahine ki) Rs</label><input id="f_amount" type="number" value="${esc(p.amount||(m?m.amount:S().defAmount))}">
+  <label>Tareekh</label><input id="f_date" type="date" value="${p.date}">
+  <label>Tareeqa</label><select id="f_method" onchange="$('#txnBox').style.display=this.value==='online'?'block':'none'">
+   <option value="cash" ${p.method!=='online'?'selected':''}>Cash</option><option value="online" ${p.method==='online'?'selected':''}>Online (Easypaisa / JazzCash / Bank)</option></select>
+  <div id="txnBox" style="display:${p.method==='online'?'block':'none'}"><label>Transaction ID</label><input id="f_txn" value="${esc(p.txn||'')}"></div>
+  <label>Note</label><input id="f_note" value="${esc(p.note||'')}">
+  <div class="chk"><input type="checkbox" id="f_wa" ${id?'':'checked'}><label for="f_wa">Raseed WhatsApp par bhejein</label></div>
+  <button class="full" onclick="savePay('${id||''}')">Save</button>
+  ${id?`<button class="full red" onclick="if(confirm('Delete?')){del('${id}');closeM();go(CUR)}">Delete</button>`:''}
+  <button class="full sec" onclick="closeM()">Wapas</button>`);
+}
+function payAmt(){const m=get(val('f_member'));if(m)$('#f_amount').value=m.amount||S().defAmount;
+  if(m&&!document.getElementById('f_amount').dataset.t){const ar=memberArrears(m);if(ar.length)$('#f_month').value=ar[0].month}}
+async function savePay(id){
+  const mem=val('f_member');if(!mem)return alert('Member chunein');
+  const n=id?1:+val('f_count'),base={member:mem,amount:+val('f_amount')||0,date:val('f_date'),method:val('f_method'),txn:val('f_txn'),note:val('f_note'),t:Date.now()};
+  const months=[];for(let i=0;i<n;i++){const mm=addM(val('f_month'),i);months.push(mm);await save('payment',{...base,id:id||undefined,month:mm})}
+  const m=get(mem);
+  if($('#f_wa').checked&&m.phone){const s=S();wa(m.phone,`Assalam o Alaikum ${m.name} sahab,\n${s.name}\n✅ Chanda wusool hua\nMahina: ${months.map(mLabel).join(', ')}\nRaqam: ${rs(base.amount*n)} (${base.method==='online'?'Online':'Cash'})${base.txn?'\nTxn ID: '+base.txn:''}\nTareekh: ${fd(base.date)}\nJazakAllah`)}
+  closeM();toast('Chanda save ho gaya');go(CUR);
+}
+function payView(id){payForm(id)}
+
+/* ---------- LATE / BAQAYA ---------- */
+V.late=()=>{
+  const m=FILT.lm||ym(),s=S(),due=dueList(m);
+  const dueDate=m+'-'+String(s.dueDay).padStart(2,'0'), passed=today()>dueDate;
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">${mLabel(m)} · baqaya</div><div class="amt" style="color:var(--red)">${rs(due.reduce((a,x)=>a+x.left,0))}</div>
+   <div class="s" style="color:var(--mut);font-size:13px;margin-top:4px">${due.length} members · aakhri tareekh ${fd(dueDate)} ${passed?'<span class="badge r">guzar gayi</span>':''}</div></div>
+  <div class="wrap"><label>Mahina</label><input type="month" value="${m}" onchange="FILT.lm=this.value;V.late()">
+  ${due.length?`<div class="row" style="margin-bottom:10px"><button class="wa" onclick="remindAll()">📲 Sab ko WhatsApp (ek ek kar ke)</button></div>
+  <button class="sec full" style="margin:0 0 10px" onclick="shareLateList()">📋 Poori list WhatsApp par bhejein</button>`:''}
+  <div class="card">${due.length?due.map(x=>`<div class="item"><div onclick="memberView('${x.m.id}')" style="cursor:pointer"><div class="n">${esc(x.m.no?x.m.no+'. ':'')}${esc(x.m.name)}</div><div class="s">${esc(x.m.phone||'phone nahi')} · ${memberArrears(x.m).length} mahine baqi</div></div>
+   <div style="text-align:right"><div class="amt-r">${rs(x.left)}</div><button class="sm wa" onclick="remind('${x.m.id}')">WA</button> <button class="sm" onclick="payForm(null,'${x.m.id}','${m}')">Jama</button></div></div>`).join(''):'<div class="empty">✅ Sab ne chanda de diya</div>'}</div></div>`;
+};
+let RQ=[];
+function remindAll(){RQ=dueList(FILT.lm||ym()).filter(x=>x.m.phone).map(x=>x.m.id);nextRemind()}
+function nextRemind(){if(!RQ.length){closeM();return toast('Sab ko bhej diya')}
+  const id=RQ[0],m=get(id);
+  openM(`<h3>WhatsApp yaad-dihani</h3><p>${RQ.length} baqi. Agla: <b>${esc(m.name)}</b></p>
+  <button class="full wa" onclick="remind('${id}');RQ.shift();nextRemind()">Bhejein</button>
+  <button class="full sec" onclick="RQ.shift();nextRemind()">Chhor dein</button><button class="full sec" onclick="RQ=[];closeM()">Band karein</button>`);}
+function shareLateList(){
+  const m=FILT.lm||ym(),due=dueList(m),s=S();
+  const msg=`${s.name}\n${mLabel(m)} – baqaya list\n\n`+due.map((x,i)=>`${i+1}. ${x.m.name} – ${rs(x.left)}`).join('\n')+`\n\nKul: ${rs(due.reduce((a,x)=>a+x.left,0))}`;
+  window.open('https://wa.me/'+(s.phone?waNum(s.phone):'')+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+/* ---------- DEATHS ---------- */
+V.deaths=()=>{
+  const ds=list('death').sort((a,b)=>b.date.localeCompare(a.date));
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">Wafat par kul kharch</div><div class="amt" style="color:var(--red)">${rs(ds.reduce((a,d)=>a+(+d.amount||0),0))}</div><div class="s" style="color:var(--mut);font-size:13px">${ds.length} wafat darj</div></div>
+  <div class="wrap"><div class="card">${ds.length?ds.map(d=>`<div class="item" onclick="deathForm('${d.id}')" style="cursor:pointer"><div><div class="n">🕊️ ${esc(d.name)}</div><div class="s">${esc(d.relation||'')} · ${esc(memName(d.member))} · ${fd(d.date)}</div></div><span class="amt-r">${rs(d.amount)}</span></div>`).join(''):'<div class="empty">Koi record nahi</div>'}</div></div>`;
+};
+function deathForm(id){
+  const d=id?get(id):{date:today(),c:{}};const c=d.c||{};
+  const items=[['cash','Cash madad'],['kafan','Kafan'],['qabar','Qabar / gorkan'],['ghusl','Ghusl / ambulance'],['khana','Khana'],['tent','Tent / chairs'],['other','Deegar']];
+  openM(`<h3>${id?'Wafat record':'Wafat darj karein'}</h3>
+  <label>Member (jis ke ghar wafat hui) *</label><select id="f_member"><option value="">-- chunein --</option>${memberOpts(d.member)}</select>
+  <label>Marhoom ka naam *</label><input id="f_name" value="${esc(d.name||'')}">
+  <label>Rishta</label><input id="f_rel" value="${esc(d.relation||'')}" placeholder="Khud / Walid / Biwi / Beta ...">
+  <label>Wafat ki tareekh</label><input id="f_date" type="date" value="${d.date}">
+  <b style="display:block;margin:6px 0">Kharcha (Rs)</b>
+  ${items.map(([k,l])=>`<div class="row"><label style="flex:1.3;padding-top:14px">${l}</label><input class="dc" data-k="${k}" type="number" value="${esc(c[k]||'')}" oninput="dTot()"></div>`).join('')}
+  <div class="card" style="background:var(--gl)"><b>Kul: <span id="dtot">${rs(d.amount||0)}</span></b></div>
+  <label>Note</label><input id="f_note" value="${esc(d.note||'')}">
+  <button class="full" onclick="saveDeath('${id||''}')">Save</button>
+  ${id?`<button class="full red" onclick="if(confirm('Delete?')){del('${id}');closeM();go('deaths')}">Delete</button>`:''}
+  <button class="full sec" onclick="closeM()">Wapas</button>`);
+}
+function dTot(){let t=0;document.querySelectorAll('.dc').forEach(i=>t+=+i.value||0);$('#dtot').textContent=rs(t);return t}
+async function saveDeath(id){
+  if(!val('f_member')||!val('f_name'))return alert('Member aur marhoom ka naam zaroori hai');
+  const c={};document.querySelectorAll('.dc').forEach(i=>{if(+i.value)c[i.dataset.k]=+i.value});
+  await save('death',{id:id||undefined,member:val('f_member'),name:val('f_name'),relation:val('f_rel'),date:val('f_date'),c,amount:dTot(),note:val('f_note')});
+  closeM();toast('Save ho gaya');go('deaths');
+}
+
+/* ---------- LOANS ---------- */
+V.loans=()=>{
+  const ls=list('loan').sort((a,b)=>b.date.localeCompare(a.date)),left=ls.reduce((a,l)=>a+loanLeft(l),0);
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">Loan wapas aana baqi</div><div class="amt" style="color:var(--red)">${rs(left)}</div>
+   <div class="row"><div class="mini"><b>${rs(ls.reduce((a,l)=>a+(+l.amount||0),0))}</b><span>Kul diya</span></div><div class="mini"><b class="amt-g">${rs(list('loanpay').reduce((a,p)=>a+(+p.amount||0),0))}</b><span>Wapas aaya</span></div></div></div>
+  <div class="wrap"><div class="card">${ls.length?ls.map(l=>{const lf=loanLeft(l);return `<div class="item" onclick="loanView('${l.id}')" style="cursor:pointer"><div><div class="n">${esc(l.member?memName(l.member):l.person)}</div><div class="s">${rs(l.amount)} · ${fd(l.date)}${l.inst?' · qist '+rs(l.inst):''}</div></div>${lf>0?`<span class="badge r">${rs(lf)} baqi</span>`:'<span class="badge">Wapas</span>'}</div>`}).join(''):'<div class="empty">Koi loan nahi</div>'}</div></div>`;
+};
+function loanForm(id){
+  const l=id?get(id):{date:today()};
+  openM(`<h3>${id?'Loan badlein':'Naya loan'}</h3>
+  <label>Member</label><select id="f_member"><option value="">-- member nahi (bahar ka banda) --</option>${memberOpts(l.member)}</select>
+  <label>Agar member nahi to naam</label><input id="f_person" value="${esc(l.person||'')}">
+  <label>Phone</label><input id="f_phone" value="${esc(l.phone||'')}">
+  <div class="row"><div><label>Raqam Rs *</label><input id="f_amount" type="number" value="${esc(l.amount||'')}"></div><div><label>Mahana qist Rs</label><input id="f_inst" type="number" value="${esc(l.inst||'')}"></div></div>
+  <label>Tareekh</label><input id="f_date" type="date" value="${l.date}">
+  <label>Zamin / gawah</label><input id="f_guar" value="${esc(l.guar||'')}">
+  <label>Wajah / note</label><input id="f_note" value="${esc(l.note||'')}">
+  <button class="full" onclick="saveLoan('${id||''}')">Save</button>
+  ${id?`<button class="full red" onclick="if(confirm('Loan aur us ki qistein delete?')){list('loanpay').filter(p=>p.loan==='${id}').forEach(p=>del(p.id));del('${id}');closeM();go('loans')}">Delete</button>`:''}
+  <button class="full sec" onclick="closeM()">Wapas</button>`);
+}
+async function saveLoan(id){
+  if(!(+val('f_amount')))return alert('Raqam likhein');if(!val('f_member')&&!val('f_person'))return alert('Member ya naam likhein');
+  const mem=val('f_member');
+  await save('loan',{id:id||undefined,member:mem,person:val('f_person'),phone:val('f_phone')||(mem?get(mem).phone:''),amount:+val('f_amount'),inst:+val('f_inst')||0,date:val('f_date'),guar:val('f_guar'),note:val('f_note')});
+  closeM();toast('Save ho gaya');go('loans');
+}
+function loanView(id){
+  const l=get(id),ps=list('loanpay').filter(p=>p.loan===id).sort((a,b)=>b.date.localeCompare(a.date)),lf=loanLeft(l);
+  const name=l.member?memName(l.member):l.person;
+  openM(`<h3>Loan: ${esc(name)}</h3>
+  <div class="card" style="background:var(--gl)">Diya: <b>${rs(l.amount)}</b> (${fd(l.date)})<br>Wapas: <b class="amt-g">${rs(l.amount-lf)}</b><br>Baqi: <b class="amt-r">${rs(lf)}</b>${l.guar?'<br>Zamin: '+esc(l.guar):''}${l.note?'<br>'+esc(l.note):''}</div>
+  ${lf>0?`<label>Qist wusool Rs</label><input id="f_lp" type="number" value="${l.inst||''}"><label>Tareekh</label><input id="f_lpd" type="date" value="${today()}">
+  <button class="full" onclick="saveLP('${id}')">Qist jama karein</button>
+  ${l.phone?`<button class="full wa" onclick="wa('${esc(l.phone)}','Assalam o Alaikum ${esc(name)},\\n${esc(S().name)} ka loan baqi: ${rs(lf)}\\nMehrbani farma kar qist jama karwa dein.')">WhatsApp yaad-dihani</button>`:''}`:''}
+  <h2>Qistein</h2><div class="card">${ps.map(p=>`<div class="item"><div class="s">${fd(p.date)}</div><span class="amt-g">${rs(p.amount)}</span><button class="sm red" onclick="if(confirm('Delete?')){del('${p.id}');loanView('${id}')}">✕</button></div>`).join('')||'<div class="empty">Abhi koi qist nahi</div>'}</div>
+  <button class="full sec" onclick="loanForm('${id}')">✏️ Badlein</button><button class="full sec" onclick="closeM();go('loans')">Wapas</button>`);
+}
+async function saveLP(id){const a=+val('f_lp');if(!a)return;await save('loanpay',{loan:id,amount:a,date:val('f_lpd')});toast('Qist save');loanView(id)}
+
+/* ---------- EXPENSES / INCOME ---------- */
+function expView(kind){
+  const es=list(kind).sort((a,b)=>b.date.localeCompare(a.date)),isE=kind==='expense';
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">${isE?'Doosre kharche (kul)':'Doosri aamdani / chanda (kul)'}</div><div class="amt" style="color:${isE?'var(--red)':'var(--gd)'}">${rs(es.reduce((a,e)=>a+(+e.amount||0),0))}</div></div>
+  <div class="wrap"><div class="tabs"><span class="${isE?'on':''}" onclick="go('expenses')">Kharche</span><span class="${isE?'':'on'}" onclick="go('income')">Doosri aamdani</span></div>
+  <div class="card">${es.length?es.map(e=>`<div class="item" onclick="expForm('${kind}','${e.id}')" style="cursor:pointer"><div><div class="n">${esc(e.title)}</div><div class="s">${fd(e.date)}${e.note?' · '+esc(e.note):''}</div></div><span class="${isE?'amt-r':'amt-g'}">${rs(e.amount)}</span></div>`).join(''):'<div class="empty">Koi record nahi</div>'}</div></div>`;
+}
+V.expenses=()=>expView('expense');V.income=()=>expView('income');
+function expForm(kind,id){
+  const e=id?get(id):{date:today()},isE=kind==='expense';
+  openM(`<h3>${isE?'Kharcha':'Aamdani (atiya / donation)'}</h3>
+  <label>Kis cheez ka *</label><input id="f_title" value="${esc(e.title||'')}" placeholder="${isE?'Chairs kiraya, register, ...':'Atiya, donation, ...'}">
+  <label>Raqam Rs *</label><input id="f_amount" type="number" value="${esc(e.amount||'')}">
+  <label>Tareekh</label><input id="f_date" type="date" value="${e.date}">
+  <label>Note</label><input id="f_note" value="${esc(e.note||'')}">
+  <button class="full" onclick="saveExp('${kind}','${id||''}')">Save</button>
+  ${id?`<button class="full red" onclick="if(confirm('Delete?')){del('${id}');closeM();go(CUR)}">Delete</button>`:''}
+  <button class="full sec" onclick="closeM()">Wapas</button>`);
+}
+async function saveExp(kind,id){if(!val('f_title')||!(+val('f_amount')))return alert('Naam aur raqam likhein');
+  await save(kind,{id:id||undefined,title:val('f_title'),amount:+val('f_amount'),date:val('f_date'),note:val('f_note')});closeM();toast('Save ho gaya');go(CUR)}
+
+/* ---------- MORE ---------- */
+V.more=()=>{
+  const it=[['deaths','🕊️','Wafat record'],['loans','🤝','Loan'],['expenses','🧾','Kharche aur doosri aamdani'],['reports','📊','Reports / Excel'],['settings','⚙️','Settings']];
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">Mazeed</div><div class="amt" style="font-size:20px">${esc(S().name)}</div></div><div class="wrap"><div class="card">
+  ${it.map(([v,i,l])=>`<div class="item" onclick="go('${v}')" style="cursor:pointer"><div class="n">${i} ${l}</div><span>›</span></div>`).join('')}
+  ${DEMO?'':`<div class="item" onclick="logout()" style="cursor:pointer"><div class="n" style="color:var(--red)">🚪 Logout</div></div>`}</div></div>`;
+};
+
+/* ---------- SETTINGS ---------- */
+V.settings=()=>{
+  const s=S();
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">Settings</div></div><div class="wrap"><div class="card">
+  <label>Committee ka naam</label><input id="s_name" value="${esc(s.name)}">
+  <label>Har mahine chanda jama karne ki aakhri tareekh (1-28)</label><input id="s_due" type="number" min="1" max="28" value="${s.dueDay}">
+  <label>Aam mahana chanda Rs</label><input id="s_amt" type="number" value="${s.defAmount}">
+  <label>Admin ka WhatsApp number (baqaya list ke liye)</label><input id="s_phone" value="${esc(s.phone)}">
+  <button class="full" onclick="saveSet()">Save</button></div>
+  <div class="card"><b>Backup</b><p class="s" style="color:var(--mut);font-size:13px;margin:4px 0">Saara data ek file mein</p>
+  <button class="full sec" onclick="backup()">⬇️ Backup file</button>
+  <label style="display:block;margin-top:10px">Backup wapas laana (restore)</label><input type="file" accept=".json" onchange="restore(this.files[0])"></div></div>`;
+};
+async function saveSet(){const s=S();await save('settings',{id:s.id,name:val('s_name')||'Death Committee',dueDay:Math.min(28,Math.max(1,+val('s_due')||10)),defAmount:+val('s_amt')||500,phone:val('s_phone')});$('#cName').textContent=S().name;toast('Settings save')}
+function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(ROWS)],{type:'application/json'}));a.download='death-committee-backup-'+today()+'.json';a.click()}
+async function restore(f){if(!f||!confirm('Backup ka data shamil karein?'))return;const rows=JSON.parse(await f.text());for(const r of rows)await save(r.kind,{...r.data,id:r.id});toast('Restore ho gaya');go('home')}
+
+/* ---------- REPORTS / EXCEL ---------- */
+V.reports=()=>{
+  const y=new Date().getFullYear(),ys=[];for(let i=y;i>=y-5;i--)ys.push(i);
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">Excel report</div><div class="amt" style="font-size:20px">Mahana · 3 mahine · 6 mahine · Saal</div></div>
+  <div class="wrap"><div class="card">
+  <label>Report ki qisam</label><select id="r_t" onchange="rOpts()"><option value="m">Mahana</option><option value="q">Quarterly (3 mahine)</option><option value="h">6 mahine</option><option value="y">Saalana</option></select>
+  <label>Saal</label><select id="r_y" onchange="rPrev()">${ys.map(v=>`<option>${v}</option>`).join('')}</select>
+  <div id="r_pbox"><label>Kaunsa</label><select id="r_p" onchange="rPrev()"></select></div>
+  <div id="r_prev" class="card" style="background:var(--gl)"></div>
+  <button class="full" onclick="exportX()">⬇️ Excel download</button></div></div>`;
+  rOpts();
+};
+function rOpts(){const t=val('r_t'),p=$('#r_p');$('#r_pbox').style.display=t==='y'?'none':'block';
+  p.innerHTML=t==='m'?MN.map((m,i)=>`<option value="${i}" ${i===new Date().getMonth()?'selected':''}>${m}</option>`).join(''):t==='q'?['Q1 (Jan-Mar)','Q2 (Apr-Jun)','Q3 (Jul-Sep)','Q4 (Oct-Dec)'].map((m,i)=>`<option value="${i}">${m}</option>`).join(''):['Pehle 6 mahine (Jan-Jun)','Doosre 6 mahine (Jul-Dec)'].map((m,i)=>`<option value="${i}">${m}</option>`).join('');rPrev()}
+function rRange(){const t=val('r_t'),y=+val('r_y'),p=+($('#r_p').value||0);let s,n;
+  if(t==='m'){s=p;n=1}else if(t==='q'){s=p*3;n=3}else if(t==='h'){s=p*6;n=6}else{s=0;n=12}
+  const months=[];for(let i=0;i<n;i++)months.push(y+'-'+String(s+i+1).padStart(2,'0'));
+  return {months,from:months[0]+'-01',to:months[n-1]+'-31',label:t==='y'?'Saal '+y:months.length===1?mLabel(months[0]):mLabel(months[0])+' se '+mLabel(months[n-1])}}
+function rPrev(){const r=rRange(),t=totals(r.from,r.to);
+  $('#r_prev').innerHTML=`<b>${r.label}</b><div class="item"><span>Chanda</span><span class="amt-g">${rs(t.pay)}</span></div><div class="item"><span>Doosri aamdani + loan wapsi</span><span class="amt-g">${rs(t.inc+t.lr)}</span></div><div class="item"><span>Wafat kharch</span><span class="amt-r">${rs(t.dth)}</span></div><div class="item"><span>Loan diye</span><span class="amt-r">${rs(t.ln)}</span></div><div class="item"><span>Doosre kharche</span><span class="amt-r">${rs(t.exp)}</span></div><div class="item"><b>Bachat</b><b>${rs(t.bal)}</b></div>`}
+function exportX(){
+  const r=rRange(),t=totals(r.from,r.to),inR=d=>d>=r.from&&d<=r.to,s=S(),wb=XLSX.utils.book_new();
+  const opening=totals(null,addM(r.months[0],-1)+'-31').bal;
+  const add=(name,rows)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows.length>1?rows:[...rows,['(koi record nahi)']]),name);
+  add('Khulasa',[[s.name+' - '+r.label],[],['Shuru ka balance',opening],['Chanda',t.pay],['Doosri aamdani',t.inc],['Loan wapsi',t.lr],['Kul aamdani',t.in],[],['Wafat kharch',t.dth],['Loan diye',t.ln],['Doosre kharche',t.exp],['Kul kharch',t.out],[],['Is muddat ki bachat',t.bal],['Aakhri balance',opening+t.bal]]);
+  add('Chanda',[['Tareekh','Member No','Member','Mahina','Raqam','Tareeqa','Txn ID','Note'],...list('payment').filter(p=>inR(p.date)).sort((a,b)=>a.date.localeCompare(b.date)).map(p=>{const m=get(p.member)||{};return [p.date,m.no||'',m.name||'',mLabel(p.month),+p.amount,p.method==='online'?'Online':'Cash',p.txn||'',p.note||'']})]);
+  const grid=[['Member No','Member','Phone',...r.months.map(mLabel),'Kul diya','Baqi']];
+  list('member').sort((a,b)=>(+a.no||1e9)-(+b.no||1e9)).forEach(m=>{let tot=0,left=0;const cells=r.months.map(mm=>{const pd=paidFor(m.id,mm);tot+=pd;const active=m.active!==false&&(!m.joined||ym(m.joined)<=mm);if(active)left+=Math.max(0,(+m.amount||s.defAmount)-pd);return active?pd:'-'});grid.push([m.no||'',m.name,m.phone||'',...cells,tot,left])});
+  add('Member-wise',grid);
+  const bq=[['Mahina','Member No','Member','Phone','Baqi raqam']];r.months.filter(mm=>mm<=ym()).forEach(mm=>dueList(mm).forEach(x=>bq.push([mLabel(mm),x.m.no||'',x.m.name,x.m.phone||'',x.left])));add('Baqaya',bq);
+  add('Wafat',[['Tareekh','Marhoom','Rishta','Member','Cash','Kafan','Qabar','Ghusl/Ambulance','Khana','Tent','Deegar','Kul','Note'],...list('death').filter(d=>inR(d.date)).map(d=>{const c=d.c||{};return [d.date,d.name,d.relation||'',memName(d.member),c.cash||0,c.kafan||0,c.qabar||0,c.ghusl||0,c.khana||0,c.tent||0,c.other||0,+d.amount,d.note||'']})]);
+  add('Loan',[['Tareekh','Naam','Phone','Raqam','Qist','Ab tak wapas','Baqi (aaj)','Zamin','Note'],...list('loan').filter(l=>l.date<=r.to).map(l=>[l.date,l.member?memName(l.member):l.person,l.phone||'',+l.amount,l.inst||'',l.amount-loanLeft(l),loanLeft(l),l.guar||'',l.note||''])]);
+  add('Loan wapsi',[['Tareekh','Naam','Raqam'],...list('loanpay').filter(p=>inR(p.date)).map(p=>{const l=get(p.loan)||{};return [p.date,l.member?memName(l.member):l.person,+p.amount]})]);
+  add('Kharche',[['Tareekh','Kis cheez ka','Raqam','Note'],...list('expense').filter(e=>inR(e.date)).map(e=>[e.date,e.title,+e.amount,e.note||''])]);
+  add('Doosri aamdani',[['Tareekh','Kis cheez ki','Raqam','Note'],...list('income').filter(e=>inR(e.date)).map(e=>[e.date,e.title,+e.amount,e.note||''])]);
+  XLSX.writeFile(wb,'Death-Committee-'+r.label.replace(/\s+/g,'-')+'.xlsx');
+}
+
+start();
+</script>
+</body>
+</html>
