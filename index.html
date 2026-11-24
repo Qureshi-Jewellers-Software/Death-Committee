@@ -69,6 +69,17 @@ nav a.on{color:var(--g);font-weight:700}
 .lang .ur{font-family:"Noto Nastaliq Urdu",serif;font-size:19px}
 button[disabled]{opacity:.4}
 #printArea{display:none}
+.burger{font-size:20px;padding:6px 12px}
+#dOver{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;display:none}
+#drawer{position:fixed;top:0;bottom:0;left:0;width:78%;max-width:300px;background:#fff;z-index:31;transform:translateX(-105%);transition:transform .25s;overflow:auto;display:flex;flex-direction:column}
+[dir=rtl] #drawer{left:auto;right:0;transform:translateX(105%)}
+#drawer.on{transform:none}#dOver.on{display:block}
+#drawer .dh{background:linear-gradient(135deg,var(--g),var(--gd));color:#fff;padding:22px 16px}
+#drawer .dh b{font-size:18px;display:block}#drawer .dh small{opacity:.85}
+#drawer a{display:flex;align-items:center;gap:12px;padding:13px 18px;color:var(--tx);text-decoration:none;cursor:pointer;font-size:15px}
+#drawer a:active,#drawer a.on{background:var(--gl);color:var(--gd)}
+#drawer .sep{height:1px;background:#eef1ef;margin:6px 0}
+#drawer a.out{color:var(--red);margin-top:auto;border-top:1px solid #eef1ef}
 .pc{max-width:420px;margin:20px auto;border:2px solid var(--g);border-radius:14px;overflow:hidden;font-size:14px}
 .pc .ph{background:var(--g);color:#fff;text-align:center;padding:12px;font-weight:700;font-size:18px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .pc table{width:100%;border-collapse:collapse}.pc td{padding:7px 12px;border-bottom:1px solid #e3e8e5;vertical-align:top}.pc td:first-child{color:#555;width:42%}
@@ -93,7 +104,7 @@ const SUPABASE_KEY = "";   // publishable (anon) key
   <div id="demoBar" class="demo" style="display:none"></div>
   <header>
     <div class="top">
-      <div><h1 id="cName">Death Committee</h1><small id="todayTxt"></small></div>
+      <div style="display:flex;align-items:center;gap:10px;flex:1"><button class="hb burger" onclick="drawer(1)" aria-label="Menu">☰</button><div><h1 id="cName">Death Committee</h1><small id="todayTxt"></small></div></div>
       <button class="hb" onclick="langPop()">🌐 <span id="langBtn"></span></button>
     </div>
   </header>
@@ -102,6 +113,7 @@ const SUPABASE_KEY = "";   // publishable (anon) key
   <nav id="nav"></nav>
 </div>
 
+<div id="dOver" onclick="drawer(0)"></div><aside id="drawer"></aside>
 <div class="modal" id="modal" onclick="if(event.target===this&&localStorage.getItem('dc_lang'))closeM()"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -530,6 +542,16 @@ function loanLeft(l){return (+l.amount||0)-list('loanpay').filter(p=>p.loan===l.
 
 /* ================= NAV ================= */
 let CUR='home', FILT={};
+function drawer(o){if(o)drawDrawer();$('#drawer').classList.toggle('on',!!o);$('#dOver').classList.toggle('on',!!o)}
+function drawDrawer(){
+  const it=[['home','🏠','Home'],['members','👥','Members'],['pay','💵','Chanda'],['late','⏰','Baqaya'],0,
+    ['deaths','🕊️','Wafat record'],['loans','🤝','Loan'],['expenses','🧾','Kharche aur doosri aamdani'],['#transferForm()','⇄','Cash / Bank transfer'],0,
+    ['reports','📊','Reports / Excel'],['#sendSummary()','📲','Mahana hisaab WhatsApp par'],['#backup()','⬇️','Backup file'],0,
+    ['settings','⚙️','Settings'],['#langPop()','🌐','Zubaan / Language']];
+  $('#drawer').innerHTML=`<div class="dh"><b>${esc(S().name)}</b><small>${fd(today())}</small></div>`+
+   it.map(x=>!x?'<div class="sep"></div>':`<a class="${x[0]===CUR?'on':''}" onclick="drawer(0);${x[0][0]==='#'?x[0].slice(1):`go('${x[0]}')`}"><span>${x[1]}</span>${L(x[2])}</a>`).join('')+
+   `<a class="out" onclick="drawer(0);logout()"><span>🚪</span>${L('Logout')}</a>`;
+}
 function drawNav(){
   $('#nav').innerHTML=[['home','🏠','Home'],['members','👥','Members'],['pay','💵','Chanda'],['late','⏰','Baqaya'],['more','☰','Mazeed']]
    .map(([v,i,l])=>`<a data-v="${v}" onclick="go('${v}')"><span class="ic">${i}</span>${L(l)}</a>`).join('');
