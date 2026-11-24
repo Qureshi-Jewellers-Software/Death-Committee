@@ -383,6 +383,21 @@ const D={
 'Member ki membership band ho jayegi. Theek hai?':['ممبر کی ممبرشپ بند ہو جائے گی۔ ٹھیک ہے؟','The membership will be closed. OK?'],
 'Member khud faut hue. Membership band kar dein?':['ممبر خود فوت ہوئے۔ ممبرشپ بند کر دیں؟','The member himself passed away. Close membership?'],
 'Ab tak diya gaya chanda':['اب تک دیا گیا چندہ','Total paid so far'],
+// v6
+'Uhdedaran':['عہدیداران','Office bearers'],'Uhda':['عہدہ','Post'],'Naya uhdedar':['نیا عہدیدار','New office bearer'],
+'Sadar':['صدر','President'],'Naib Sadar':['نائب صدر','Vice President'],'General Secretary':['جنرل سیکریٹری','General Secretary'],
+'Joint Secretary':['جوائنٹ سیکریٹری','Joint Secretary'],'Khazanchi':['خزانچی','Treasurer'],'Wasooli wala':['وصولی والا','Collector'],
+'Rukn-e-Committee':['رکنِ کمیٹی','Committee member'],'Kab se':['کب سے','From'],'Kab tak':['کب تک','Until'],'Mojooda':['موجودہ','Current'],'Sabiq':['سابق','Former'],
+'Koi uhdedar nahi':['کوئی عہدیدار نہیں','No office bearers'],
+'Purana register Excel se':['پرانا رجسٹر ایکسل سے','Import old register from Excel'],
+'Template download':['ٹیمپلیٹ ڈاؤن لوڈ','Download template'],'File chunein (Excel ya CSV)':['فائل منتخب کریں (ایکسل یا CSV)','Choose file (Excel or CSV)'],
+'members shamil ho gaye':['ممبرز شامل ہو گئے','members imported'],'Ada shuda aakhri mahina (YYYY-MM)':['ادا شدہ آخری مہینہ (YYYY-MM)','Paid up to month (YYYY-MM)'],
+'Pehle template download karein, us mein members likh kar yahan upload karein.':['پہلے ٹیمپلیٹ ڈاؤن لوڈ کریں، اس میں ممبرز لکھ کر یہاں اپ لوڈ کریں۔','Download the template, fill in members, then upload it here.'],
+'Khata':['کھاتہ','Statement'],'Khata (statement)':['کھاتہ (اسٹیٹمنٹ)','Statement'],'Wajib':['واجب','Due'],'Ada':['ادا','Paid'],
+'tak ada':['تک ادا','paid up to'],'Advance':['ایڈوانس','Advance'],
+'Aam elaan':['عام اعلان','General notice'],'Elaan ka paigham':['اعلان کا پیغام','Notice message'],'Unwan':['عنوان','Title'],
+'Qisam':['قسم','Type'],'Zakat':['زکوٰۃ','Zakat'],'Sadqa':['صدقہ','Sadqa'],'Atiya':['عطیہ','Donation'],
+'Aamdani aur kharch (12 mahine)':['آمدنی اور خرچ (12 مہینے)','Income and expense (12 months)'],'Aamdani':['آمدنی','Income'],'Kharch':['خرچ','Expense'],
 // Excel
 'Khulasa':['خلاصہ','Summary'],'Shuru ka balance':['شروع کا بیلنس','Opening balance'],'Loan wapsi':['قرض واپسی','Loan returns'],
 'Kul aamdani':['کل آمدنی','Total income'],'Kul kharch':['کل خرچ','Total expense'],'Is muddat ki bachat':['اس مدت کی بچت','Net for period'],
@@ -488,7 +503,7 @@ function readFam(){return [...document.querySelectorAll('.famr')].map(r=>({name:
 const acctOf=x=>x.acct?x.acct:(x.method==='online'?'bank':'cash');
 const acctTxt=a=>a==='bank'?L('Bank / Easypaisa'):L('Cash (haath mein)');
 function acctSel(cur,lbl){return `<label>${L(lbl)}</label><select id="f_acct"><option value="cash" ${cur!=='bank'?'selected':''}>${L('Cash (haath mein)')}</option><option value="bank" ${cur==='bank'?'selected':''}>${L('Bank / Easypaisa')}</option></select>`}
-function collSel(cur){const c=S().collectors;if(!c.length)return '';return `<label>${L('Kis ne wusool kiya')}</label><select id="f_coll"><option value="">-</option>${c.map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('')}</select>`}
+function collSel(cur){const c=[...new Set([...S().collectors,...list('officer').filter(o=>!o.to).map(o=>o.name)])];if(!c.length)return '';return `<label>${L('Kis ne wusool kiya')}</label><select id="f_coll"><option value="">-</option>${c.map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('')}</select>`}
 const collVal=()=>{const e=document.getElementById('f_coll');return e?e.value:''};
 function printHTML(html){let p=document.getElementById('printArea');if(!p){p=document.createElement('div');p.id='printArea';document.body.appendChild(p)}p.innerHTML=html;p.dir=document.documentElement.dir;window.print()}
 function waNum(p){p=String(p||'').replace(/\D/g,'');if(p.startsWith('0'))p='92'+p.slice(1);return p}
@@ -578,6 +593,7 @@ function drawer(o){if(o)drawDrawer();$('#drawer').classList.toggle('on',!!o);$('
 function drawDrawer(){
   const it=[['home','🏠','Home'],['members','👥','Members'],['pay','💵','Chanda'],['late','⏰','Baqaya'],0,
     ['deaths','🕊️','Wafat record'],['loans','🤝','Loan'],['expenses','🧾','Kharche aur doosri aamdani'],['#transferForm()','⇄','Cash / Bank transfer'],0,
+    ['officers','🎖️','Uhdedaran'],['#noticeForm()','📢','Aam elaan'],0,
     ['reports','📊','Reports / Excel'],['#sendSummary()','📲','Mahana hisaab WhatsApp par'],['#backup()','⬇️','Backup file'],0,
     ['settings','⚙️','Settings'],['#langPop()','🌐','Zubaan / Language']];
   $('#drawer').innerHTML=`<div class="dh"><b>${esc(S().name)}</b><small>${fd(today())}</small></div>`+
@@ -589,9 +605,9 @@ function drawNav(){
    .map(([v,i,l])=>`<a data-v="${v}" onclick="go('${v}')"><span class="ic">${i}</span>${L(l)}</a>`).join('');
 }
 function go(v){CUR=v;document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.dataset.v===v));
-  $('#fab').style.display=['members','pay','deaths','loans','expenses','income'].includes(v)?'block':'none';
+  $('#fab').style.display=['members','pay','deaths','loans','expenses','income','officers'].includes(v)?'block':'none';
   (V[v]||V.home)(); window.scrollTo(0,0);}
-function fabAct(){({members:()=>memberForm(),pay:()=>payForm(),deaths:()=>deathForm(),loans:()=>loanForm(),expenses:()=>expForm('expense'),income:()=>expForm('income')})[CUR]?.()}
+function fabAct(){({members:()=>memberForm(),pay:()=>payForm(),deaths:()=>deathForm(),loans:()=>loanForm(),expenses:()=>expForm('expense'),income:()=>expForm('income'),officers:()=>offForm()})[CUR]?.()}
 function boot(){$('#app').style.display='block';applyLang();drawNav();
   $('#demoBar').style.display=DEMO?'block':'none';$('#demoBar').textContent=L('Demo mode: data sirf is phone par hai. Supabase jorne ke baad sab online save hoga.');
   $('#cName').textContent=S().name;$('#todayTxt').textContent=fd(today());go('home');}
@@ -639,12 +655,15 @@ function transferForm(){openM(`<h3>⇄ ${L('Cash / Bank transfer')}</h3>
   <h2>${L('Cash / Bank transfer')}</h2><div class="card">${list('transfer').sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<div class="item"><div><div class="n">${x.dir==='c2b'?L('Cash se Bank'):L('Bank se Cash')}</div><div class="s">${fd(x.date)} ${esc(x.note||'')}</div></div><span>${rs(x.amount)}</span><button class="sm red" onclick="if(confirm(L('Delete?'))){del('${x.id}');transferForm();go(CUR)}">✕</button></div>`).join('')||`<div class="empty">${L('Koi record nahi')}</div>`}</div>
   <button class="full sec" onclick="closeM()">${L('Wapas')}</button>`)}
 async function saveTransfer(){if(!(+val('f_amount')))return alert(L('Raqam likhein'));await save('transfer',{dir:val('f_dir'),amount:+val('f_amount'),date:val('f_date'),note:val('f_note')});closeM();toast(L('Transfer save'));go(CUR)}
+function paidUpTo(m){let mm=ym(m.joined||today()),last=null;const amt=+m.amount||S().defAmount;for(let i=0;i<240;i++){if(paidFor(m.id,mm)>=amt){last=mm;mm=addM(mm,1)}else break}return last}
+function advBadge(m){const u=paidUpTo(m);return u&&u>ym()?`<span class="badge">✅ ${mLabel(u)} ${L('tak ada')}</span>`:''}
 function statusBadge(m){const ar=memberArrears(m);
   if(m.died)return `<span class="badge r">${L('Faut')}</span>`;
   if(m.left)return `<span class="badge o">${L('Chhor diya')}</span>`;
   if(m.active===false)return `<span class="badge o">${L('Band')}</span>`;
   if(lapsed(m))return `<span class="badge r">${L('Membership khatam')}</span>`;
   if(ar.length)return `<span class="badge r">${ar.length} ${L('mahine baqi')}</span>`;
+  if(advBadge(m))return advBadge(m);
   if(inWait(m))return `<span class="badge o">${L('Intezar mein')}</span>`;
   return `<span class="badge">${L('Clear')}</span>`}
 
@@ -706,6 +725,7 @@ function memberView(id){
   <div class="row"><button class="sec" onclick="payForm(null,'${id}')">💵 ${L('Chanda')}</button><button class="wa" onclick="remind('${id}')">${L('WhatsApp')}</button></div>
   <h2>${L('Chande')} (${pays.length})</h2><div class="card">${pays.map(payItem).join('')||`<div class="empty">${L('Koi nahi')}</div>`}</div>
   ${lns.length?`<h2>${L('Loan')}</h2><div class="card">${lns.map(l=>`<div class="item"><div><div class="n">${rs(l.amount)}</div><div class="s">${fd(l.date)}</div></div><span class="badge r">${rs(loanLeft(l))} ${L('baqi')}</span></div>`).join('')}</div>`:''}
+  <div class="row"><button class="sec" onclick="printStatement('${id}')">📄 ${L('Khata')}</button><button class="wa" onclick="waStatement('${id}')">📲 ${L('Khata')}</button></div>
   <button class="full sec" onclick="printCard('${id}')">🖨️ ${L('Member card print')}</button>
   ${m.active!==false?`<button class="full sec" style="color:var(--red)" onclick="leaveForm('${id}')">🚪 ${L('Membership chhorna')}</button>`:''}
   <button class="full" onclick="memberForm('${id}')">✏️ ${L('Badlein')}</button><button class="full sec" onclick="closeM()">${L('Wapas')}</button>`);
@@ -719,6 +739,18 @@ async function saveLeave(id){if(!confirm(L('Member ki membership band ho jayegi.
   await save('member',{...m,active:false,left:val('f_date'),leftWhy:val('f_why'),refund:ref});
   if(ref)await save('expense',{title:L('Wapsi')+': '+m.name,amount:ref,date:val('f_date'),acct:val('f_acct'),member:id,refund:true});
   toast(L('Save ho gaya'));go(CUR);memberView(id)}
+function ledger(m){const rows=[];let mm=ym(m.joined||today());const end=[ym(),...list('payment').filter(p=>p.member===m.id).map(p=>p.month)].sort().pop();const amt=+m.amount||S().defAmount;
+  while(mm<=end){const ps=list('payment').filter(p=>p.member===m.id&&p.month===mm);rows.push({month:mm,due:amt,paid:ps.reduce((a,p)=>a+(+p.amount||0),0),fine:ps.reduce((a,p)=>a+(+p.fine||0),0),date:ps.map(p=>p.date).sort().pop()||''});mm=addM(mm,1)}return rows}
+function printStatement(id){const m=get(id),r=ledger(m),s=S(),sp=list('spay').filter(p=>p.member===id),fi=fineInfo(m);
+  printHTML(`<div class="pc" style="max-width:560px"><div class="ph">${esc(s.name)}<br><small>${L('Khata (statement)')} – ${esc(m.no?m.no+'. ':'')}${esc(m.name)}</small></div>
+  <table><tr><td><b>${L('Mahina')}</b></td><td><b>${L('Wajib')}</b></td><td><b>${L('Ada')}</b></td><td><b>${L('Jurmana')}</b></td><td><b>${L('Tareekh')}</b></td></tr>
+  ${r.map(x=>`<tr><td>${mLabel(x.month)}</td><td>${rs(x.month<=ym()?x.due:0)}</td><td>${x.paid?rs(x.paid):'-'}</td><td>${x.fine?rs(x.fine):''}</td><td>${x.date?fd(x.date):''}</td></tr>`).join('')}
+  ${sp.map(p=>`<tr><td>${L('Khaas chanda')}</td><td></td><td>${rs(p.amount)}</td><td></td><td>${fd(p.date)}</td></tr>`).join('')}
+  <tr><td><b>${L('Kul')}</b></td><td><b>${rs(r.filter(x=>x.month<=ym()).reduce((a,x)=>a+x.due,0))}</b></td><td><b>${rs(r.reduce((a,x)=>a+x.paid,0))}</b></td><td><b>${rs(r.reduce((a,x)=>a+x.fine,0))}</b></td><td></td></tr></table>
+  <div style="padding:10px 12px">${L('Baqaya')}: <b>${rs(memberArrears(m).reduce((a,x)=>a+x.left,0))}</b>${fi.due?' · '+L('Jurmana baqi')+': <b>'+rs(fi.due)+'</b>':''}</div>
+  <div class="sig">${offName('Khazanchi')?esc(offName('Khazanchi'))+' ('+L('Khazanchi')+')<br>':''}${L('Dastakhat')}: ____________</div></div>`)}
+function waStatement(id){const m=get(id),r=ledger(m),ar=memberArrears(m);if(!m.phone)return alert(L('Is member ka phone number nahi hai'));
+  wa(m.phone,`${S().name}\n${L('Khata (statement)')}: ${m.name}\n\n`+r.slice(-12).map(x=>`${mLabel(x.month)}: ${x.paid>=x.due?'✅ '+rs(x.paid):x.month>ym()?'-':'❌ '+rs(x.paid)+' / '+rs(x.due)}`).join('\n')+`\n\n${L('Ab tak diya gaya chanda')}: ${rs(r.reduce((a,x)=>a+x.paid,0))}\n${L('Baqaya')}: ${rs(ar.reduce((a,x)=>a+x.left,0))}${paidUpTo(m)?'\n✅ '+mLabel(paidUpTo(m))+' '+L('tak ada'):''}`)}
 function printCard(id){const m=get(id),s=S();
   printHTML(`<div class="pc"><div class="ph">${esc(s.name)}<br><small>${L('Member card')}</small></div>
   <table><tr><td>${L('Member No.')}</td><td><b>${esc(m.no||'-')}</b></td></tr><tr><td>${L('Naam *').replace(' *','')}</td><td><b>${esc(m.name)}</b></td></tr>
@@ -734,7 +766,7 @@ function printReceipt(id){const p=get(id),m=get(p.member)||{},s=S();
   <tr><td>${L('Raqam')}</td><td><b>${rs(p.amount)}</b></td></tr>${+p.fine?`<tr><td>${L('Jurmana')}</td><td>${rs(p.fine)}</td></tr>`:''}
   <tr><td>${L('Tareeqa')}</td><td>${methodTxt(p)}</td></tr><tr><td>${L('Tareekh')}</td><td>${fd(p.date)}</td></tr>
   ${p.coll?`<tr><td>${L('Jis ne paise liye')}</td><td>${esc(p.coll)}</td></tr>`:''}</table>
-  <div class="sig">${L('Dastakhat')}: ____________</div></div>`)}
+  <div class="sig">${offName('Khazanchi')?esc(offName('Khazanchi'))+' ('+L('Khazanchi')+')<br>':''}${L('Dastakhat')}: ____________</div></div>`)}
 function remind(id){
   const m=get(id),ar=memberArrears(m);
   if(!m.phone)return alert(L('Is member ka phone number nahi hai'));
@@ -934,12 +966,13 @@ function expView(kind){
   const es=list(kind).sort((a,b)=>b.date.localeCompare(a.date)),isE=kind==='expense';
   $('#view').innerHTML=`<div class="bal"><div class="lbl">${isE?L('Doosre kharche (kul)'):L('Doosri aamdani (kul)')}</div><div class="amt" style="color:${isE?'var(--red)':'var(--gd)'}">${rs(es.reduce((a,e)=>a+(+e.amount||0),0))}</div></div>
   <div class="wrap"><div class="tabs"><span class="${isE?'on':''}" onclick="go('expenses')">${L('Kharche')}</span><span class="${isE?'':'on'}" onclick="go('income')">${L('Doosri aamdani')}</span></div>
-  <div class="card">${es.length?es.map(e=>`<div class="item" onclick="expForm('${kind}','${e.id}')" style="cursor:pointer"><div><div class="n">${esc(e.title)}</div><div class="s">${fd(e.date)}${e.note?' · '+esc(e.note):''}</div></div><span class="${isE?'amt-r':'amt-g'}">${rs(e.amount)}</span></div>`).join(''):`<div class="empty">${L('Koi record nahi')}</div>`}</div></div>`;
+  <div class="card">${es.length?es.map(e=>`<div class="item" onclick="expForm('${kind}','${e.id}')" style="cursor:pointer"><div><div class="n">${esc(e.title)}</div><div class="s">${e.itype?L(e.itype)+' · ':''}${fd(e.date)}${e.note?' · '+esc(e.note):''}</div></div><span class="${isE?'amt-r':'amt-g'}">${rs(e.amount)}</span></div>`).join(''):`<div class="empty">${L('Koi record nahi')}</div>`}</div></div>`;
 }
 V.expenses=()=>expView('expense');V.income=()=>expView('income');
 function expForm(kind,id){
   const e=id?get(id):{date:today()},isE=kind==='expense';
   openM(`<h3>${isE?L('Kharcha'):L('Aamdani (atiya / donation)')}</h3>
+  ${isE?'':`<label>${L('Qisam')}</label><select id="f_itype">${['Atiya','Zakat','Sadqa','Deegar'].map(t=>`<option value="${t}" ${t===e.itype?'selected':''}>${L(t)}</option>`).join('')}</select>`}
   <label>${L('Kis cheez ka *')}</label><input id="f_title" value="${esc(e.title||'')}" placeholder="${isE?L('Chairs kiraya, register, ...'):L('Atiya, donation, ...')}">
   <label>${L('Raqam Rs *')}</label><input id="f_amount" type="number" value="${esc(e.amount||'')}">
   <label>${L('Tareekh')}</label><input id="f_date" type="date" value="${e.date}">
@@ -950,11 +983,36 @@ function expForm(kind,id){
   <button class="full sec" onclick="closeM()">${L('Wapas')}</button>`);
 }
 async function saveExp(kind,id){if(!val('f_title')||!(+val('f_amount')))return alert(L('Naam aur raqam likhein'));
-  await save(kind,{id:id||undefined,title:val('f_title'),amount:+val('f_amount'),date:val('f_date'),acct:val('f_acct'),note:val('f_note')});closeM();toast(L('Save ho gaya'));go(CUR)}
+  await save(kind,{id:id||undefined,title:val('f_title'),itype:kind==='income'?val('f_itype'):undefined,amount:+val('f_amount'),date:val('f_date'),acct:val('f_acct'),note:val('f_note')});closeM();toast(L('Save ho gaya'));go(CUR)}
+
+/* ---------- OFFICERS ---------- */
+const POSTS=['Sadar','Naib Sadar','General Secretary','Joint Secretary','Khazanchi','Wasooli wala','Rukn-e-Committee','Deegar'];
+V.officers=()=>{const os=list('officer').sort((a,b)=>(!!a.to-!!b.to)||POSTS.indexOf(a.post)-POSTS.indexOf(b.post));
+  $('#view').innerHTML=`<div class="bal"><div class="lbl">🎖️ ${L('Uhdedaran')}</div><div class="amt" style="font-size:20px">${esc(S().name)}</div></div>
+  <div class="wrap"><div class="card">${os.length?os.map(o=>`<div class="item" onclick="offForm('${o.id}')" style="cursor:pointer"><div><div class="n">${esc(o.name)}</div><div class="s">${L(o.post)} · ${fd(o.from)}${o.to?' – '+fd(o.to):''}${o.phone?' · '+esc(o.phone):''}</div></div><span class="badge ${o.to?'o':''}">${o.to?L('Sabiq'):L('Mojooda')}</span></div>`).join(''):`<div class="empty">${L('Koi uhdedar nahi')}</div>`}</div></div>`};
+function offForm(id){const o=id?get(id):{from:today(),post:'Sadar'};
+  openM(`<h3>${id?L('Badlein'):L('Naya uhdedar')}</h3>
+  <label>${L('Uhda')}</label><select id="f_post">${POSTS.map(p=>`<option value="${p}" ${p===o.post?'selected':''}>${L(p)}</option>`).join('')}</select>
+  <label>${L('Member')}</label><select id="f_member" onchange="const m=get(this.value);if(m){$('#f_name').value=m.name;$('#f_phone').value=m.phone||''}"><option value="">-</option>${memberOpts(o.member)}</select>
+  <label>${L('Naam *')}</label><input id="f_name" value="${esc(o.name||'')}"><label>${L('Phone')}</label><input id="f_phone" value="${esc(o.phone||'')}">
+  <div class="row"><div><label>${L('Kab se')}</label><input id="f_from" type="date" value="${esc(o.from||'')}"></div><div><label>${L('Kab tak')}</label><input id="f_to" type="date" value="${esc(o.to||'')}"></div></div>
+  <button class="full" onclick="saveOff('${id||''}')">${L('Save')}</button>
+  ${id?`<button class="full red" onclick="if(confirm(L('Delete?'))){del('${id}');closeM();go('officers')}">${L('Delete')}</button>`:''}<button class="full sec" onclick="closeM()">${L('Wapas')}</button>`)}
+async function saveOff(id){if(!val('f_name'))return alert(L('Naam likhein'));await save('officer',{id:id||undefined,post:val('f_post'),member:val('f_member'),name:val('f_name'),phone:val('f_phone'),from:val('f_from'),to:val('f_to')});closeM();toast(L('Save ho gaya'));go('officers')}
+const offName=p=>(list('officer').find(o=>o.post===p&&!o.to)||{}).name||'';
+
+/* ---------- NOTICE ---------- */
+function noticeForm(){openM(`<h3>📢 ${L('Aam elaan')}</h3><label>${L('Unwan')}</label><input id="f_t"><label>${L('Elaan ka paigham')}</label><textarea id="f_msg" rows="5"></textarea>
+  <button class="full wa" onclick="window.open('https://wa.me/?text='+encodeURIComponent(noticeTxt()),'_blank')">${L('WhatsApp group par bhejein')}</button>
+  <button class="full sec" onclick="NT=noticeTxt();RQ=list('member').filter(m=>m.active!==false&&m.phone).map(m=>m.id);nextNotice()">${L('Sab members ko (ek ek kar ke)')}</button><button class="full sec" onclick="closeM()">${L('Wapas')}</button>`)}
+let NT='';const noticeTxt=()=>`📢 ${S().name}\n${val('f_t')?'*'+val('f_t')+'*\n':''}${val('f_msg')}${offName('Sadar')?'\n\n— '+offName('Sadar')+', '+L('Sadar'):''}`;
+function nextNotice(){if(!RQ.length){closeM();return toast(L('Sab ko bhej diya'))}const m=get(RQ[0]);
+  openM(`<h3>📢 ${L('Aam elaan')}</h3><p>${RQ.length} ${L('baqi. Agla:')} <b>${esc(m.name)}</b></p>
+  <button class="full wa" onclick="wa(get(RQ[0]).phone,NT);RQ.shift();nextNotice()">${L('Bhejein')}</button><button class="full sec" onclick="RQ.shift();nextNotice()">${L('Chhor dein')}</button><button class="full sec" onclick="RQ=[];closeM()">${L('Band karein')}</button>`)}
 
 /* ---------- MORE ---------- */
 V.more=()=>{
-  const it=[["go('deaths')",'🕊️','Wafat record'],["go('loans')",'🤝','Loan'],["go('expenses')",'🧾','Kharche aur doosri aamdani'],["go('reports')",'📊','Reports / Excel'],["go('settings')",'⚙️','Settings'],["langPop()",'🌐','Zubaan / Language']];
+  const it=[["go('deaths')",'🕊️','Wafat record'],["go('loans')",'🤝','Loan'],["go('expenses')",'🧾','Kharche aur doosri aamdani'],["go('officers')",'🎖️','Uhdedaran'],["noticeForm()",'📢','Aam elaan'],["go('reports')",'📊','Reports / Excel'],["go('settings')",'⚙️','Settings'],["langPop()",'🌐','Zubaan / Language']];
   $('#view').innerHTML=`<div class="bal"><div class="lbl">${L('Mazeed options')}</div><div class="amt" style="font-size:20px">${esc(S().name)}</div></div><div class="wrap"><div class="card">
   ${it.map(([f,i,l])=>`<div class="item" onclick="${f}" style="cursor:pointer"><div class="n">${i} ${L(l)}</div><span>›</span></div>`).join('')}
   ${DEMO?'':`<div class="item" onclick="logout()" style="cursor:pointer"><div class="n" style="color:var(--red)">🚪 ${L('Logout')}</div></div>`}</div></div>`;
@@ -983,11 +1041,26 @@ V.settings=()=>{
   <div class="card"><b>🌐 ${L('Zubaan / Language')}</b><button class="full sec" onclick="langPop()">${LN[LANG]}</button></div>
   <div class="card"><b>${L('Backup')}</b><p style="color:var(--mut);font-size:13px;margin:4px 0">${L('Saara data ek file mein')}</p>
   <button class="full sec" onclick="backup()">⬇️ ${L('Backup file')}</button>
-  <label style="display:block;margin-top:10px">${L('Backup wapas laana (restore)')}</label><input type="file" accept=".json" onchange="restore(this.files[0])"></div></div>`;
+  <label style="display:block;margin-top:10px">${L('Backup wapas laana (restore)')}</label><input type="file" accept=".json" onchange="restore(this.files[0])"></div>
+  <div class="card"><b>📥 ${L('Purana register Excel se')}</b><p style="color:var(--mut);font-size:13px;margin:4px 0">${L('Pehle template download karein, us mein members likh kar yahan upload karein.')}</p>
+  <button class="full sec" onclick="importTpl()">⬇️ ${L('Template download')}</button>
+  <label style="display:block;margin-top:10px">${L('File chunein (Excel ya CSV)')}</label><input type="file" accept=".xlsx,.xls,.csv" onchange="importReg(this.files[0])"></div></div>`;
 };
 async function saveSet(){const s=S();await save('settings',{id:s.id,name:val('s_name')||'Death Committee',dueDay:Math.min(28,Math.max(1,+val('s_due')||10)),defAmount:+val('s_amt')||500,phone:val('s_phone'),
   collectors:val('s_coll'),openCash:+val('s_oc')||0,openBank:+val('s_ob')||0,waitM:+val('s_wait')||0,fine:+val('s_fine')||0,lapse:+val('s_lapse')||0,maxFam:+val('s_maxfam')||0,maxAge:+val('s_maxage')||0,ben:Object.fromEntries(BENK.map(([k])=>[k,+val('s_ben_'+k)||0])),lastBackup:s.lastBackup});$('#cName').textContent=S().name;toast(L('Settings save'))}
 function backup(){const s=list('settings')[0]||{};save('settings',{...s,lastBackup:new Date().toISOString()});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(ROWS)],{type:'application/json'}));a.download='death-committee-backup-'+today()+'.json';a.click()}
+const IMPH=['Member No','Naam','Walid / Shohar','Phone','CNIC','Pata','Mahana chanda','Shamil (YYYY-MM-DD)','Ada shuda aakhri mahina (YYYY-MM)'];
+function importTpl(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([IMPH,[1,'Muhammad Ali','Ahmed Ali','03001234567','42101-1234567-1','Gali 5',500,'2024-01-01','2026-10']]),'Members');XLSX.writeFile(wb,'Members-template.xlsx')}
+async function importReg(f){if(!f)return;const wb=XLSX.read(await f.arrayBuffer(),{cellDates:true});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true});
+  const h=rows[0].map(x=>String(x||'').toLowerCase()),col=k=>h.findIndex(x=>x.includes(k));
+  const c={no:col('no'),name:col('naam'),father:col('walid'),phone:col('phone'),cnic:col('cnic'),addr:col('pata'),amt:col('chanda'),join:col('shamil'),paid:col('ada')};
+  const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const nd=v=>{if(v instanceof Date)return dstr(v);v=String(v||'').trim();if(/^\d{4}-\d{2}-\d{2}/.test(v))return v.slice(0,10);const d=new Date(v);return isNaN(d)?today():d.toISOString().slice(0,10)};
+  let n=0;for(const r of rows.slice(1)){const gr=k=>c[k]>=0?r[c[k]]:'',g=k=>{const v=gr(k);return v instanceof Date?dstr(v):String(v??'').trim()};if(!g('name'))continue;
+    const joined=nd(gr('join')),amt=+g('amt')||S().defAmount;
+    const id=await save('member',{no:g('no'),name:g('name'),father:g('father'),phone:(x=>/^3\d{9}$/.test(x)?'0'+x:x)(g('phone')),cnic:g('cnic'),address:g('addr'),amount:amt,joined,active:true,fam:[]});n++;
+    const pu=g('paid').slice(0,7);if(/^\d{4}-\d{2}$/.test(pu)){let mm=ym(joined);while(mm<=pu){await save('payment',{member:id,month:mm,amount:amt,date:joined>mm+'-01'?joined:mm+'-01',method:'cash',note:'import'});mm=addM(mm,1)}}}
+  toast(n+' '+L('members shamil ho gaye'));go('members')}
 async function restore(f){if(!f||!confirm(L('Backup ka data shamil karein?')))return;const rows=JSON.parse(await f.text());for(const r of rows)await save(r.kind,{...r.data,id:r.id});toast(L('Restore ho gaya'));go('home')}
 
 /* ---------- REPORTS / EXCEL ---------- */
@@ -1000,9 +1073,15 @@ V.reports=()=>{
   <div id="r_pbox"><label>${L('Kaunsa')}</label><select id="r_p" onchange="rPrev()"></select></div>
   <div id="r_prev" class="card" style="background:var(--gl)"></div>
   <button class="full" onclick="exportX()">⬇️ ${L('Excel download')}</button>
-  <button class="full wa" onclick="sendSummary(rRange().months.length===1?rRange().months[0]:null)">📲 ${L('Mahana hisaab WhatsApp par')}</button></div></div>`;
+  <button class="full wa" onclick="sendSummary(rRange().months.length===1?rRange().months[0]:null)">📲 ${L('Mahana hisaab WhatsApp par')}</button></div>
+  <h2>📈 ${L('Aamdani aur kharch (12 mahine)')}</h2><div class="card">${chart12()}</div></div>`;
   rOpts();
 };
+function chart12(){const ms=[];for(let i=11;i>=0;i--)ms.push(addM(ym(),-i));const d=ms.map(m=>{const t=totals(m+'-01',m+'-31');return {m,i:t.in,o:t.out}});const mx=Math.max(1,...d.map(x=>Math.max(x.i,x.o)));
+  return `<div style="display:flex;gap:12px;font-size:12px;margin-bottom:8px"><span><i style="display:inline-block;width:10px;height:10px;background:var(--g);border-radius:2px"></i> ${L('Aamdani')}</span><span><i style="display:inline-block;width:10px;height:10px;background:var(--red);border-radius:2px"></i> ${L('Kharch')}</span></div>
+  <div style="display:flex;align-items:flex-end;gap:4px;height:150px;direction:ltr">${d.map(x=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end" title="${mLabel(x.m)}: ${rs(x.i)} / ${rs(x.o)}" onclick="toast('${mLabel(x.m)}: +${rs(x.i)} / -${rs(x.o)}')">
+   <div style="display:flex;align-items:flex-end;gap:1px;height:130px;width:100%"><div style="flex:1;background:var(--g);border-radius:3px 3px 0 0;height:${x.i/mx*100}%"></div><div style="flex:1;background:var(--red);border-radius:3px 3px 0 0;height:${x.o/mx*100}%"></div></div>
+   <div style="font-size:9px;color:var(--mut);margin-top:3px">${MN[LANG][+x.m.slice(5)-1].slice(0,LANG==='ur'?6:3)}</div></div>`).join('')}</div>`}
 function rOpts(){const t=val('r_t'),p=$('#r_p'),M=MN[LANG];$('#r_pbox').style.display=t==='y'?'none':'block';
   p.innerHTML=t==='m'?M.map((m,i)=>`<option value="${i}" ${i===new Date().getMonth()?'selected':''}>${m}</option>`).join('')
    :t==='q'?[0,1,2,3].map(i=>`<option value="${i}">Q${i+1} (${M[i*3]} - ${M[i*3+2]})</option>`).join('')
@@ -1032,7 +1111,8 @@ function exportX(){
   add('Loan',[H(['Tareekh','Naam','Phone','Raqam','Qist','Ab tak wapas','Baqi (aaj)','Zamin','Note']),...list('loan').filter(l=>l.date<=r.to).map(l=>[l.date,l.member?memName(l.member):l.person,l.phone||'',+l.amount,l.inst||'',l.amount-loanLeft(l),loanLeft(l),l.guar||'',l.note||''])]);
   add('Loan wapsi',[H(['Tareekh','Naam','Raqam']),...list('loanpay').filter(p=>inR(p.date)).map(p=>{const l=get(p.loan)||{};return [p.date,l.member?memName(l.member):l.person,+p.amount]})]);
   add('Kharche',[H(['Tareekh','Kis cheez ka','Raqam','Note']),...list('expense').filter(e=>inR(e.date)).map(e=>[e.date,e.title,+e.amount,e.note||''])]);
-  add('Doosri aamdani',[H(['Tareekh','Kis cheez ki','Raqam','Note']),...list('income').filter(e=>inR(e.date)).map(e=>[e.date,e.title,+e.amount,e.note||''])]);
+  add('Doosri aamdani',[H(['Tareekh','Qisam','Kis cheez ki','Raqam','Note']),...list('income').filter(e=>inR(e.date)).map(e=>[e.date,L(e.itype||'Atiya'),e.title,+e.amount,e.note||''])]);
+  add('Uhdedaran',[H(['Uhda','Naam','Phone','Kab se','Kab tak']),...list('officer').map(o=>[L(o.post),o.name,o.phone||'',o.from||'',o.to||''])]);
   XLSX.writeFile(wb,'Death-Committee-'+r.label.replace(/\s+/g,'-')+'.xlsx');
 }
 
