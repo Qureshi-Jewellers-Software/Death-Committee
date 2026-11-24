@@ -350,7 +350,7 @@ const D={
 'Raseed':['رسید','Receipt'],
 'Member card':['ممبر کارڈ','Member card'],
 'Wasooli wale ka hisaab':['وصولی والوں کا حساب','Collected by person'],
-'Backup liye 1 mahina ho gaya. Abhi backup lein.':['بیک اپ لیے ایک مہینہ ہو گیا۔ ابھی بیک اپ لیں۔','It has been a month since the last backup. Take one now.'],
+'Mahine ka aakhri din hai. Backup lein.':['آج مہینے کا آخری دن ہے۔ بیک اپ لیں۔','Month end: please take a backup now.'],
 'App phone par install karein':['ایپ فون پر انسٹال کریں','Install app on phone'],
 'Chrome menu (⋮) mein "Add to Home screen" dabayein':['کروم مینو (⋮) میں "Add to Home screen" دبائیں','In Chrome menu (⋮) tap "Add to Home screen"'],
 'Jis ne paise liye':['جس نے پیسے لیے','Received by'],
@@ -493,7 +493,7 @@ async function logout(){ if(sb) await sb.auth.signOut(); location.reload(); }
 function $(s){return document.querySelector(s)}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rs=n=>'Rs '+Math.round(+n||0).toLocaleString('en-PK');
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
 const ym=d=>(d||today()).slice(0,7);
 const mLabel=m=>{const [y,mm]=m.split('-');return MN[LANG][+mm-1]+' '+y};
 const fd=d=>{if(!d)return'';const x=new Date(d);return x.getDate()+' '+MN[LANG][x.getMonth()]+' '+x.getFullYear()};
@@ -639,7 +639,7 @@ V.home=()=>{
   const recent=list('payment').sort((a,b)=>((b.date||'')+(b.t||'')).localeCompare((a.date||'')+(a.t||''))).slice(0,6);
   const tiles=[["go('pay');payForm()",'💵','Chanda lein'],["go('members');memberForm()",'➕','Naya member'],["go('deaths')",'🕊️','Wafat'],["go('loans')",'🤝','Loan'],
     ["go('late')",'⏰','Baqaya'],["go('expenses')",'🧾','Kharche'],["go('reports')",'📊','Excel'],["go('settings')",'⚙️','Settings']];
-  const ab=accBal(),oldBk=DEMO&&(!s.lastBackup||(Date.now()-new Date(s.lastBackup))/864e5>30)&&ROWS.length>3;
+  const ab=accBal(),oldBk=DEMO&&ROWS.length>3&&bkDue(s.lastBackup);
   $('#view').innerHTML=`
   <div class="bal"><div class="lbl">${L('Committee ke paas kul raqam')}</div><div class="amt" style="${t.bal<0?'color:var(--red)':''}">${rs(t.bal)}</div>
    <div class="row"><div class="mini"><b>${rs(ab.cash)}</b><span>💵 ${L('Cash (haath mein)')}</span></div>
@@ -647,7 +647,7 @@ V.home=()=>{
    <div class="row"><div class="mini"><b class="amt-g">${rs(mt.pay+mt.spay+mt.fine)}</b><span>${L('Is mahine chanda')}</span></div>
    <div class="mini"><b class="amt-r">${rs(mt.out)}</b><span>${L('Is mahine kharch')}</span></div></div></div>
   <div class="wrap">
-  ${oldBk?`<div class="card" style="background:#fff3e2;color:#8a5200" onclick="backup()">⚠️ ${L('Backup liye 1 mahina ho gaya. Abhi backup lein.')} ⬇️</div>`:''}
+  ${oldBk?`<div class="card" style="background:#fff3e2;color:#8a5200" onclick="backup()">⚠️ ${L('Mahine ka aakhri din hai. Backup lein.')} ⬇️</div>`:''}
   <div class="grid">${tiles.map(([f,i,l])=>`<div class="tile" onclick="${f}"><div class="ic">${i}</div>${L(l)}</div>`).join('')}</div>
   <div class="card" onclick="go('late')" style="cursor:pointer">
    <div class="item"><div><div class="n">${mLabel(m)} ${L('ka baqaya')}</div><div class="s">${due.length} ${L('members ne abhi poora nahi diya')} · ${late?L('tareekh guzar gayi'):L('aakhri tareekh')+' '+s.dueDay}</div></div>
@@ -663,6 +663,12 @@ V.home=()=>{
   </div>`;
 };
 
+function bkDue(lb){ // aakhri din se, jab tak backup na liya jaye
+  const t=today(),lastDay=d=>{const [y,m]=d.split('-').map(Number);return d.slice(0,8)+String(new Date(y,m,0).getDate()).padStart(2,'0')};
+  const cur=lastDay(t),prev=lastDay(addM(ym(),-1)+'-01'),b=(lb||'').slice(0,10);
+  if(t>=cur&&b<cur)return true;   // mahine ka aakhri din
+  return b<prev&&ROWS.some(r=>r.kind==='payment'&&(r.data.date||'')<=prev); // pichle mahine ka reh gaya
+}
 function sendSummary(m){m=m||ym();const t=totals(m+'-01',m+'-31');
   window.open('https://wa.me/?text='+encodeURIComponent(MSG.summary(m,t,accBal(),dueList(m),S())),'_blank')}
 function transferForm(){openM(`<h3>⇄ ${L('Cash / Bank transfer')}</h3>
@@ -1081,7 +1087,7 @@ async function bulkRate(){const a=+val('b_amt'),rf=val('b_from');if(!a||!rf)retu
   const st=list('settings')[0]||{};await save('settings',{...st,defAmount:a});toast(L('Save ho gaya'));V.settings()}
 async function saveSet(){const s=S();await save('settings',{...(list('settings')[0]||{}),id:s.id,pin:val('s_pin'),name:val('s_name')||'Death Committee',dueDay:Math.min(28,Math.max(1,+val('s_due')||10)),defAmount:+val('s_amt')||500,phone:val('s_phone'),
   collectors:val('s_coll'),openCash:+val('s_oc')||0,openBank:+val('s_ob')||0,waitM:+val('s_wait')||0,fine:+val('s_fine')||0,lapse:+val('s_lapse')||0,maxFam:+val('s_maxfam')||0,maxAge:+val('s_maxage')||0,ben:Object.fromEntries(BENK.map(([k])=>[k,+val('s_ben_'+k)||0])),lastBackup:s.lastBackup});$('#cName').textContent=S().name;toast(L('Settings save'))}
-function backup(){const s=list('settings')[0]||{};save('settings',{...s,lastBackup:new Date().toISOString()});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(ROWS)],{type:'application/json'}));a.download='death-committee-backup-'+today()+'.json';a.click()}
+function backup(){const s=list('settings')[0]||{};save('settings',{...s,lastBackup:today()});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(ROWS)],{type:'application/json'}));a.download='death-committee-backup-'+today()+'.json';a.click()}
 const IMPH=['Member No','Naam','Walid / Shohar','Phone','CNIC','Pata','Mahana chanda','Shamil (YYYY-MM-DD)','Ada shuda aakhri mahina (YYYY-MM)'];
 function importTpl(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([IMPH,[1,'Muhammad Ali','Ahmed Ali','03001234567','42101-1234567-1','Gali 5',500,'2024-01-01','2026-10']]),'Members');XLSX.writeFile(wb,'Members-template.xlsx')}
 async function importReg(f){if(!f)return;const wb=XLSX.read(await f.arrayBuffer(),{cellDates:true});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true});
