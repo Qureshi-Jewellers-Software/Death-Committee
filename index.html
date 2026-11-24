@@ -360,6 +360,29 @@ const D={
 'Raqam':['رقم','Amount'],
 'Kul jama':['کل جمع','Total collected'],
 'Khaas chande':['خاص چندے','Special contributions'],
+// v5
+'Ghar ke afraad ki list':['گھر کے افراد کی لسٹ','Family members list'],
+'+ Fard shamil karein':['+ فرد شامل کریں','+ Add family member'],
+'Umar':['عمر','Age'],'Paidaish':['پیدائش','Date of birth'],
+'Biwi':['بیوی','Wife'],'Shohar':['شوہر','Husband'],'Beta':['بیٹا','Son'],'Beti':['بیٹی','Daughter'],'Walid':['والد','Father'],'Walida':['والدہ','Mother'],
+'Khud (member)':['خود (ممبر)','Self (member)'],
+'Purana note (afraad)':['پرانا نوٹ (افراد)','Old note (family)'],
+'Waris / Nominee':['وارث / نامزد','Nominee'],'Waris ka naam':['وارث کا نام','Nominee name'],'Waris ka phone':['وارث کا فون','Nominee phone'],
+'Member ki paidaish':['ممبر کی پیدائش','Member date of birth'],
+'Kaun faut hua':['کون فوت ہوا','Who passed away'],
+'Hadsati maut (accident) - intezar ki shart nahi':['حادثاتی موت - انتظار کی شرط نہیں','Accidental death - no waiting period'],
+'Muqarrar raqam (rishte ke hisaab se)':['مقررہ رقم (رشتے کے حساب سے)','Fixed benefit (by relation)'],
+'Member khud':['ممبر خود','Member self'],'Miyan / Biwi':['میاں / بیوی','Spouse'],'Walidain':['والدین','Parents'],'Bachche':['بچے','Children'],
+'Ziyada se ziyada afraad (0 = koi had nahi)':['زیادہ سے زیادہ افراد (0 = کوئی حد نہیں)','Max family members (0 = no limit)'],
+'Shamil hone ki ziyada se ziyada umar (0 = koi had nahi)':['شمولیت کی زیادہ سے زیادہ عمر (0 = کوئی حد نہیں)','Max joining age (0 = no limit)'],
+'Afraad ki had se ziyada hain. Phir bhi save karein?':['افراد حد سے زیادہ ہیں۔ پھر بھی محفوظ کریں؟','More family members than the limit. Save anyway?'],
+'Umar had se ziyada hai. Phir bhi save karein?':['عمر حد سے زیادہ ہے۔ پھر بھی محفوظ کریں؟','Age is above the limit. Save anyway?'],
+'Membership chhorna':['ممبرشپ چھوڑنا','Leave membership'],'Chhorne ki tareekh':['چھوڑنے کی تاریخ','Leaving date'],
+'Wajah':['وجہ','Reason'],'Wapas di gayi raqam Rs (0 = kuch nahi)':['واپس دی گئی رقم روپے (0 = کچھ نہیں)','Amount refunded Rs (0 = none)'],
+'Chhor diya':['چھوڑ دیا','Left'],'Wapsi':['واپسی','Refund'],'Faut':['فوت','Deceased'],
+'Member ki membership band ho jayegi. Theek hai?':['ممبر کی ممبرشپ بند ہو جائے گی۔ ٹھیک ہے؟','The membership will be closed. OK?'],
+'Member khud faut hue. Membership band kar dein?':['ممبر خود فوت ہوئے۔ ممبرشپ بند کر دیں؟','The member himself passed away. Close membership?'],
+'Ab tak diya gaya chanda':['اب تک دیا گیا چندہ','Total paid so far'],
 // Excel
 'Khulasa':['خلاصہ','Summary'],'Shuru ka balance':['شروع کا بیلنس','Opening balance'],'Loan wapsi':['قرض واپسی','Loan returns'],
 'Kul aamdani':['کل آمدنی','Total income'],'Kul kharch':['کل خرچ','Total expense'],'Is muddat ki bachat':['اس مدت کی بچت','Net for period'],
@@ -452,7 +475,16 @@ const fd=d=>{if(!d)return'';const x=new Date(d);return x.getDate()+' '+MN[LANG][
 function addM(m,n){let [y,mm]=m.split('-').map(Number);mm+=n;while(mm>12){mm-=12;y++}while(mm<1){mm+=12;y--}return y+'-'+String(mm).padStart(2,'0')}
 function toast(t){const e=$('#toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2000)}
 function S(){const s=list('settings')[0]||{};return {id:s.id,name:s.name||'Death Committee',dueDay:+s.dueDay||10,defAmount:+s.defAmount||500,phone:s.phone||'',
-  waitM:+s.waitM||0,fine:+s.fine||0,lapse:+s.lapse||0,openCash:+s.openCash||0,openBank:+s.openBank||0,collectors:(s.collectors||'').split(',').map(x=>x.trim()).filter(Boolean),lastBackup:s.lastBackup||''}}
+  waitM:+s.waitM||0,fine:+s.fine||0,lapse:+s.lapse||0,openCash:+s.openCash||0,openBank:+s.openBank||0,collectors:(s.collectors||'').split(',').map(x=>x.trim()).filter(Boolean),lastBackup:s.lastBackup||'',maxFam:+s.maxFam||0,maxAge:+s.maxAge||0,ben:s.ben||{}}}
+const RELS=['Biwi','Shohar','Beta','Beti','Walid','Walida','Deegar'];
+const BENK=[['self','Member khud'],['spouse','Miyan / Biwi'],['parent','Walidain'],['child','Bachche'],['other','Deegar']];
+const benKey=r=>r==='self'?'self':['Biwi','Shohar'].includes(r)?'spouse':['Walid','Walida'].includes(r)?'parent':['Beta','Beti'].includes(r)?'child':'other';
+const ageOf=d=>{if(!d)return '';const b=new Date(d),t=new Date();let a=t.getFullYear()-b.getFullYear();if(t<new Date(t.getFullYear(),b.getMonth(),b.getDate()))a--;return a};
+function famRow(f){f=f||{};return `<div class="card famr" style="background:var(--gl);padding:10px">
+  <div class="row"><input class="fn" placeholder="${L('Naam *').replace(' *','')}" value="${esc(f.name||'')}"><select class="fr">${RELS.map(r=>`<option value="${r}" ${r===f.rel?'selected':''}>${L(r)}</option>`).join('')}</select></div>
+  <div class="row"><div><label>${L('Paidaish')}</label><input class="fd" type="date" value="${esc(f.dob||'')}"></div><div><label>${L('CNIC')}</label><input class="fc" value="${esc(f.cnic||'')}"></div></div>
+  <input type="hidden" class="fdd" value="${f.died?1:''}"><button class="sm red" onclick="this.closest('.famr').remove()">✕</button></div>`}
+function readFam(){return [...document.querySelectorAll('.famr')].map(r=>({name:r.querySelector('.fn').value.trim(),rel:r.querySelector('.fr').value,dob:r.querySelector('.fd').value,cnic:r.querySelector('.fc').value.trim(),died:!!r.querySelector('.fdd').value})).filter(f=>f.name)}
 const acctOf=x=>x.acct?x.acct:(x.method==='online'?'bank':'cash');
 const acctTxt=a=>a==='bank'?L('Bank / Easypaisa'):L('Cash (haath mein)');
 function acctSel(cur,lbl){return `<label>${L(lbl)}</label><select id="f_acct"><option value="cash" ${cur!=='bank'?'selected':''}>${L('Cash (haath mein)')}</option><option value="bank" ${cur==='bank'?'selected':''}>${L('Bank / Easypaisa')}</option></select>`}
@@ -608,6 +640,8 @@ function transferForm(){openM(`<h3>⇄ ${L('Cash / Bank transfer')}</h3>
   <button class="full sec" onclick="closeM()">${L('Wapas')}</button>`)}
 async function saveTransfer(){if(!(+val('f_amount')))return alert(L('Raqam likhein'));await save('transfer',{dir:val('f_dir'),amount:+val('f_amount'),date:val('f_date'),note:val('f_note')});closeM();toast(L('Transfer save'));go(CUR)}
 function statusBadge(m){const ar=memberArrears(m);
+  if(m.died)return `<span class="badge r">${L('Faut')}</span>`;
+  if(m.left)return `<span class="badge o">${L('Chhor diya')}</span>`;
   if(m.active===false)return `<span class="badge o">${L('Band')}</span>`;
   if(lapsed(m))return `<span class="badge r">${L('Membership khatam')}</span>`;
   if(ar.length)return `<span class="badge r">${ar.length} ${L('mahine baqi')}</span>`;
@@ -633,7 +667,14 @@ function memberForm(id){
   <label>${L('Phone (WhatsApp)')}</label><input id="f_phone" type="tel" value="${esc(m.phone||'')}" placeholder="03xxxxxxxxx">
   <label>${L('CNIC')}</label><input id="f_cnic" value="${esc(m.cnic||'')}">
   <label>${L('Ghar ka pata')}</label><input id="f_address" value="${esc(m.address||'')}">
-  <label>${L('Ghar ke afraad (jin ko cover milega)')}</label><textarea id="f_family" rows="3" placeholder="${L('Biwi: ..., Beta: ...')}">${esc(m.family||'')}</textarea>
+  <label>${L('Member ki paidaish')}</label><input id="f_dob" type="date" value="${esc(m.dob||'')}">
+  <b style="display:block;margin:6px 0">👨‍👩‍👧 ${L('Ghar ke afraad (jin ko cover milega)')}</b>
+  <div id="famRows">${(m.fam||[]).map(famRow).join('')}</div>
+  <button class="sm sec" style="margin-bottom:10px" onclick="document.getElementById('famRows').insertAdjacentHTML('beforeend',famRow())">${L('+ Fard shamil karein')}</button>
+  ${m.family?`<label>${L('Purana note (afraad)')}</label><textarea id="f_family" rows="2">${esc(m.family)}</textarea>`:''}
+  <b style="display:block;margin:6px 0">🤝 ${L('Waris / Nominee')}</b>
+  <div class="row"><div><label>${L('Waris ka naam')}</label><input id="f_nom" value="${esc(m.nom||'')}"></div><div><label>${L('Rishta')}</label><input id="f_nomrel" value="${esc(m.nomrel||'')}"></div></div>
+  <label>${L('Waris ka phone')}</label><input id="f_nomph" type="tel" value="${esc(m.nomph||'')}">
   <label>${L('Shamil hone ki tareekh')}</label><input id="f_joined" type="date" value="${esc(m.joined||today())}">
   <div class="chk"><input type="checkbox" id="f_active" ${m.active!==false?'checked':''}><label for="f_active">${L('Member chalu hai (active)')}</label></div>
   <button class="full" onclick="saveMember('${id||''}')">${L('Save')}</button>
@@ -642,7 +683,11 @@ function memberForm(id){
 }
 async function saveMember(id){
   if(!val('f_name'))return alert(L('Naam likhein'));
-  await save('member',{id:id||undefined,no:val('f_no'),name:val('f_name'),father:val('f_father'),phone:val('f_phone'),cnic:val('f_cnic'),address:val('f_address'),family:val('f_family'),joined:val('f_joined'),amount:+val('f_amount')||S().defAmount,active:$('#f_active').checked});
+  const fam=readFam(),s=S(),old=id?get(id):{},fe=document.getElementById('f_family');
+  if(s.maxFam&&fam.filter(f=>!f.died).length>s.maxFam&&!confirm(L('Afraad ki had se ziyada hain. Phir bhi save karein?')))return;
+  if(!id&&s.maxAge&&val('f_dob')&&ageOf(val('f_dob'))>s.maxAge&&!confirm(L('Umar had se ziyada hai. Phir bhi save karein?')))return;
+  await save('member',{...old,id:id||undefined,no:val('f_no'),name:val('f_name'),father:val('f_father'),phone:val('f_phone'),cnic:val('f_cnic'),address:val('f_address'),dob:val('f_dob'),fam,family:fe?fe.value.trim():'',
+    nom:val('f_nom'),nomrel:val('f_nomrel'),nomph:val('f_nomph'),joined:val('f_joined'),amount:+val('f_amount')||S().defAmount,active:$('#f_active').checked});
   closeM();toast(L('Save ho gaya'));go(CUR);
 }
 function memberView(id){
@@ -651,7 +696,9 @@ function memberView(id){
   const lns=list('loan').filter(l=>l.member===id);
   openM(`<h3>${esc(m.name)}</h3>
   <div style="color:var(--mut);font-size:13px;margin-bottom:8px">${L('Member No.')} ${esc(m.no||'-')} · ${esc(m.phone||'')} · ${L('CNIC')} ${esc(m.cnic||'-')}<br>${esc(m.address||'')}<br>${L('Shamil')}: ${fd(m.joined)} · ${rs(m.amount)}/${L('mahina')}</div>
-  ${m.family?`<div class="card" style="background:var(--gl)"><b>${L('Ghar ke afraad')}</b><div style="white-space:pre-wrap;font-size:14px">${esc(m.family)}</div></div>`:''}
+  ${(m.fam||[]).length||m.family?`<div class="card" style="background:var(--gl)"><b>${L('Ghar ke afraad')}</b>${(m.fam||[]).map(f=>`<div class="item"><div><div class="n">${esc(f.name)} ${f.died?`<span class="badge r">${L('Faut')}</span>`:''}</div><div class="s">${L(f.rel)}${f.dob?' · '+L('Umar')+' '+ageOf(f.dob):''}${f.cnic?' · '+esc(f.cnic):''}</div></div></div>`).join('')}${m.family?`<div style="white-space:pre-wrap;font-size:14px">${esc(m.family)}</div>`:''}</div>`:''}
+  ${m.nom?`<div class="card"><b>${L('Waris / Nominee')}</b>: ${esc(m.nom)}${m.nomrel?' ('+esc(m.nomrel)+')':''} ${esc(m.nomph||'')}</div>`:''}
+  ${m.left?`<div class="card" style="background:#fff3e2">${L('Chhor diya')}: ${fd(m.left)}${m.leftWhy?' · '+esc(m.leftWhy):''}${m.refund?' · '+L('Wapsi')+' '+rs(m.refund):''}</div>`:''}
   <div style="margin-bottom:8px">${statusBadge(m)} ${S().waitM?`<span class="badge">${L('Cover shuru')}: ${fd(coverDate(m))}</span>`:''}</div>
   <div class="card"><b>${L('Baqaya')}: <span class="amt-r">${rs(ar.reduce((a,x)=>a+x.left,0))}</span></b>
   <div style="color:var(--mut);font-size:13px">${ar.map(x=>mLabel(x.month)).join(', ')||L('Sab clear')}</div>
@@ -660,15 +707,26 @@ function memberView(id){
   <h2>${L('Chande')} (${pays.length})</h2><div class="card">${pays.map(payItem).join('')||`<div class="empty">${L('Koi nahi')}</div>`}</div>
   ${lns.length?`<h2>${L('Loan')}</h2><div class="card">${lns.map(l=>`<div class="item"><div><div class="n">${rs(l.amount)}</div><div class="s">${fd(l.date)}</div></div><span class="badge r">${rs(loanLeft(l))} ${L('baqi')}</span></div>`).join('')}</div>`:''}
   <button class="full sec" onclick="printCard('${id}')">🖨️ ${L('Member card print')}</button>
+  ${m.active!==false?`<button class="full sec" style="color:var(--red)" onclick="leaveForm('${id}')">🚪 ${L('Membership chhorna')}</button>`:''}
   <button class="full" onclick="memberForm('${id}')">✏️ ${L('Badlein')}</button><button class="full sec" onclick="closeM()">${L('Wapas')}</button>`);
 }
+function leaveForm(id){const m=get(id),paid=list('payment').filter(p=>p.member===id).reduce((a,p)=>a+(+p.amount||0),0);
+  openM(`<h3>🚪 ${L('Membership chhorna')}: ${esc(m.name)}</h3><div class="s" style="color:var(--mut)">${L('Ab tak diya gaya chanda')}: ${rs(paid)}</div>
+  <label>${L('Chhorne ki tareekh')}</label><input id="f_date" type="date" value="${today()}"><label>${L('Wajah')}</label><input id="f_why">
+  <label>${L('Wapas di gayi raqam Rs (0 = kuch nahi)')}</label><input id="f_ref" type="number" value="0">${acctSel('cash','Kahan se diya')}
+  <button class="full red" onclick="saveLeave('${id}')">${L('Save')}</button><button class="full sec" onclick="memberView('${id}')">${L('Wapas')}</button>`)}
+async function saveLeave(id){if(!confirm(L('Member ki membership band ho jayegi. Theek hai?')))return;const m=get(id),ref=+val('f_ref')||0;
+  await save('member',{...m,active:false,left:val('f_date'),leftWhy:val('f_why'),refund:ref});
+  if(ref)await save('expense',{title:L('Wapsi')+': '+m.name,amount:ref,date:val('f_date'),acct:val('f_acct'),member:id,refund:true});
+  toast(L('Save ho gaya'));go(CUR);memberView(id)}
 function printCard(id){const m=get(id),s=S();
   printHTML(`<div class="pc"><div class="ph">${esc(s.name)}<br><small>${L('Member card')}</small></div>
   <table><tr><td>${L('Member No.')}</td><td><b>${esc(m.no||'-')}</b></td></tr><tr><td>${L('Naam *').replace(' *','')}</td><td><b>${esc(m.name)}</b></td></tr>
   <tr><td>${L('Walid / Shohar ka naam')}</td><td>${esc(m.father||'')}</td></tr><tr><td>${L('CNIC')}</td><td>${esc(m.cnic||'')}</td></tr>
   <tr><td>${L('Phone')}</td><td>${esc(m.phone||'')}</td></tr><tr><td>${L('Ghar ka pata')}</td><td>${esc(m.address||'')}</td></tr>
   <tr><td>${L('Shamil')}</td><td>${fd(m.joined)}</td></tr>${s.waitM?`<tr><td>${L('Cover shuru')}</td><td>${fd(coverDate(m))}</td></tr>`:''}
-  <tr><td>${L('Mahana chanda (Rs)')}</td><td>${rs(m.amount)}</td></tr><tr><td>${L('Ghar ke afraad')}</td><td style="white-space:pre-wrap">${esc(m.family||'')}</td></tr></table>
+  <tr><td>${L('Mahana chanda (Rs)')}</td><td>${rs(m.amount)}</td></tr><tr><td>${L('Ghar ke afraad')}</td><td>${(m.fam||[]).filter(f=>!f.died).map(f=>esc(f.name)+' ('+L(f.rel)+(f.dob?', '+ageOf(f.dob):'')+')').join('<br>')}${m.family?'<br>'+esc(m.family):''}</td></tr>
+  ${m.nom?`<tr><td>${L('Waris / Nominee')}</td><td>${esc(m.nom)}${m.nomrel?' ('+esc(m.nomrel)+')':''} ${esc(m.nomph||'')}</td></tr>`:''}</table>
   <div class="sig">${L('Dastakhat')}: ____________</div></div>`)}
 function printReceipt(id){const p=get(id),m=get(p.member)||{},s=S();
   printHTML(`<div class="pc"><div class="ph">${esc(s.name)}<br><small>${L('Raseed')}</small></div>
@@ -764,7 +822,9 @@ V.deaths=()=>{
 function deathForm(id){
   const d=id?get(id):{date:today(),c:{}};const c=d.c||{};
   openM(`<h3>${id?L('Wafat record'):L('Wafat darj karein')}</h3>
-  <label>${L('Member (jis ke ghar wafat hui) *')}</label><select id="f_member"><option value="">${L('-- chunein --')}</option>${memberOpts(d.member)}</select>
+  <label>${L('Member (jis ke ghar wafat hui) *')}</label><select id="f_member" onchange="whoOpts()"><option value="">${L('-- chunein --')}</option>${memberOpts(d.member)}</select>
+  ${id?'':`<label>${L('Kaun faut hua')}</label><select id="f_who" onchange="whoPick()"></select>`}
+  <div class="chk"><input type="checkbox" id="f_acc" ${d.accident?'checked':''}><label for="f_acc">${L('Hadsati maut (accident) - intezar ki shart nahi')}</label></div>
   <label>${L('Marhoom ka naam *')}</label><input id="f_name" value="${esc(d.name||'')}">
   <label>${L('Rishta')}</label><input id="f_rel" value="${esc(d.relation||'')}" placeholder="${L('Khud / Walid / Biwi / Beta ...')}">
   <label>${L('Wafat ki tareekh')}</label><input id="f_date" type="date" value="${d.date}">
@@ -778,15 +838,24 @@ function deathForm(id){
   <button class="full" onclick="saveDeath('${id||''}')">${L('Save')}</button>
   ${id?`<button class="full red" onclick="if(confirm(L('Delete?'))){del('${id}');closeM();go('deaths')}">${L('Delete')}</button>`:''}
   <button class="full sec" onclick="closeM()">${L('Wapas')}</button>`);
+  whoOpts();
 }
+function whoOpts(){const w=document.getElementById('f_who');if(!w)return;const m=get(val('f_member'));
+  w.innerHTML=`<option value="">-</option>`+(m?`<option value="self">${esc(m.name)} – ${L('Khud (member)')}</option>`+(m.fam||[]).map((f,i)=>f.died?'':`<option value="${i}">${esc(f.name)} – ${L(f.rel)}</option>`).join(''):'');}
+function whoPick(){const m=get(val('f_member')),w=val('f_who');if(!m||w==='')return;const f=w==='self'?{name:m.name,rel:'self'}:m.fam[+w];
+  $('#f_name').value=f.name;$('#f_rel').value=w==='self'?L('Khud (member)'):L(f.rel);
+  const b=S().ben[benKey(f.rel)];if(b){document.querySelector('.dc[data-k=cash]').value=b;dTot()}}
 function dTot(){let t=0;document.querySelectorAll('.dc').forEach(i=>t+=+i.value||0);$('#dtot').textContent=rs(t);return t}
 async function saveDeath(id){
   if(!val('f_member')||!val('f_name'))return alert(L('Member aur marhoom ka naam zaroori hai'));
   const mm=get(val('f_member'));
-  if(!id&&inWait(mm)&&!confirm(L('Yeh member abhi intezar ki muddat mein hai. Phir bhi save karein?')))return;
+  const acc=$('#f_acc').checked,who=document.getElementById('f_who')?val('f_who'):'';
+  if(!id&&!acc&&inWait(mm)&&!confirm(L('Yeh member abhi intezar ki muddat mein hai. Phir bhi save karein?')))return;
   if(!id&&lapsed(mm)&&!confirm(L('Is member ki membership khatam hai. Phir bhi save karein?')))return;
   const c={};document.querySelectorAll('.dc').forEach(i=>{if(+i.value)c[i.dataset.k]=+i.value});
-  const nid=await save('death',{id:id||undefined,member:val('f_member'),name:val('f_name'),relation:val('f_rel'),date:val('f_date'),jtime:val('f_jtime'),jplace:val('f_jplace'),acct:val('f_acct'),special:+val('f_special')||0,c,amount:dTot(),note:val('f_note')});
+  const nid=await save('death',{id:id||undefined,member:val('f_member'),name:val('f_name'),relation:val('f_rel'),date:val('f_date'),jtime:val('f_jtime'),jplace:val('f_jplace'),acct:val('f_acct'),special:+val('f_special')||0,c,amount:dTot(),note:val('f_note'),accident:acc,who});
+  if(!id&&who!==''){const m2=get(mm.id);if(who==='self'){if(confirm(L('Member khud faut hue. Membership band kar dein?')))await save('member',{...m2,active:false,died:val('f_date')})}
+    else{const fam=[...(m2.fam||[])];if(fam[+who]){fam[+who]={...fam[+who],died:true};await save('member',{...m2,fam})}}}
   toast(L('Save ho gaya'));go('deaths');deathView(nid);
 }
 function deathView(id){
@@ -905,6 +974,10 @@ V.settings=()=>{
   <label>${L('Naya member kitne mahine baad cover mein aaye')}</label><input id="s_wait" type="number" min="0" value="${s.waitM}">
   <label>${L('Har late mahine ka jurmana Rs (0 = koi nahi)')}</label><input id="s_fine" type="number" min="0" value="${s.fine}">
   <label>${L('Itne mahine baqi hon to membership khatam (0 = kabhi nahi)')}</label><input id="s_lapse" type="number" min="0" value="${s.lapse}">
+  <label>${L('Ziyada se ziyada afraad (0 = koi had nahi)')}</label><input id="s_maxfam" type="number" min="0" value="${s.maxFam}">
+  <label>${L('Shamil hone ki ziyada se ziyada umar (0 = koi had nahi)')}</label><input id="s_maxage" type="number" min="0" value="${s.maxAge}">
+  <b style="display:block;margin:6px 0">💰 ${L('Muqarrar raqam (rishte ke hisaab se)')}</b>
+  ${BENK.map(([k,l])=>`<div class="row"><label style="flex:1.2;padding-top:14px">${L(l)}</label><input id="s_ben_${k}" type="number" min="0" value="${s.ben[k]||''}"></div>`).join('')}
   <button class="full" onclick="saveSet()">${L('Save')}</button></div>
   <div class="card"><b>📱 ${L('App phone par install karein')}</b><p style="color:var(--mut);font-size:13px;margin-top:4px">${L('Chrome menu (⋮) mein "Add to Home screen" dabayein')}</p>${window._inst?`<button class="full" onclick="_inst.prompt()">📱 ${L('App phone par install karein')}</button>`:''}</div>
   <div class="card"><b>🌐 ${L('Zubaan / Language')}</b><button class="full sec" onclick="langPop()">${LN[LANG]}</button></div>
@@ -913,7 +986,7 @@ V.settings=()=>{
   <label style="display:block;margin-top:10px">${L('Backup wapas laana (restore)')}</label><input type="file" accept=".json" onchange="restore(this.files[0])"></div></div>`;
 };
 async function saveSet(){const s=S();await save('settings',{id:s.id,name:val('s_name')||'Death Committee',dueDay:Math.min(28,Math.max(1,+val('s_due')||10)),defAmount:+val('s_amt')||500,phone:val('s_phone'),
-  collectors:val('s_coll'),openCash:+val('s_oc')||0,openBank:+val('s_ob')||0,waitM:+val('s_wait')||0,fine:+val('s_fine')||0,lapse:+val('s_lapse')||0,lastBackup:s.lastBackup});$('#cName').textContent=S().name;toast(L('Settings save'))}
+  collectors:val('s_coll'),openCash:+val('s_oc')||0,openBank:+val('s_ob')||0,waitM:+val('s_wait')||0,fine:+val('s_fine')||0,lapse:+val('s_lapse')||0,maxFam:+val('s_maxfam')||0,maxAge:+val('s_maxage')||0,ben:Object.fromEntries(BENK.map(([k])=>[k,+val('s_ben_'+k)||0])),lastBackup:s.lastBackup});$('#cName').textContent=S().name;toast(L('Settings save'))}
 function backup(){const s=list('settings')[0]||{};save('settings',{...s,lastBackup:new Date().toISOString()});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(ROWS)],{type:'application/json'}));a.download='death-committee-backup-'+today()+'.json';a.click()}
 async function restore(f){if(!f||!confirm(L('Backup ka data shamil karein?')))return;const rows=JSON.parse(await f.text());for(const r of rows)await save(r.kind,{...r.data,id:r.id});toast(L('Restore ho gaya'));go('home')}
 
@@ -953,6 +1026,7 @@ function exportX(){
   const grid=[[...H(['Member No','Member','Phone']),...r.months.map(mLabel),L('Kul diya (Rs)'),L('baqi')]];
   list('member').sort((a,b)=>(+a.no||1e9)-(+b.no||1e9)).forEach(m=>{let tot=0,left=0;const cells=r.months.map(mm=>{const pd=paidFor(m.id,mm);tot+=pd;const active=m.active!==false&&(!m.joined||ym(m.joined)<=mm);if(active&&mm<=ym())left+=Math.max(0,(+m.amount||s.defAmount)-pd);return active?pd:'-'});grid.push([m.no||'',m.name,m.phone||'',...cells,tot,left])});
   add('Member-wise',grid);
+  add('Members',[H(['Member No','Naam','Phone','CNIC','Ghar ka pata','Shamil','Ghar ke afraad','Waris / Nominee','Chhor diya']),...list('member').sort((a,b)=>(+a.no||1e9)-(+b.no||1e9)).map(m=>[m.no||'',m.name,m.phone||'',m.cnic||'',m.address||'',m.joined||'',(m.fam||[]).map(f=>f.name+' ('+L(f.rel)+(f.died?', '+L('Faut'):'')+')').join(', ')+(m.family?' '+m.family:''),m.nom?m.nom+' ('+(m.nomrel||'')+') '+(m.nomph||''):'',m.left||(m.died?L('Faut'):'')])]);
   const bq=[H(['Mahina','Member No','Member','Phone','Baqi raqam'])];r.months.filter(mm=>mm<=ym()).forEach(mm=>dueList(mm).forEach(x=>bq.push([mLabel(mm),x.m.no||'',x.m.name,x.m.phone||'',x.left])));add('Baqaya',bq);
   add('Wafat',[[...H(['Tareekh','Marhoom','Rishta','Member']),...DITEMS.map(x=>L(x[1])),L('Kul'),L('Note')],...list('death').filter(d=>inR(d.date)).map(d=>{const c=d.c||{};return [d.date,d.name,d.relation||'',memName(d.member),...DITEMS.map(x=>c[x[0]]||0),+d.amount,d.note||'']})]);
   add('Loan',[H(['Tareekh','Naam','Phone','Raqam','Qist','Ab tak wapas','Baqi (aaj)','Zamin','Note']),...list('loan').filter(l=>l.date<=r.to).map(l=>[l.date,l.member?memName(l.member):l.person,l.phone||'',+l.amount,l.inst||'',l.amount-loanLeft(l),loanLeft(l),l.guar||'',l.note||''])]);
