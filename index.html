@@ -68,6 +68,7 @@ nav a.on{color:var(--g);font-weight:700}
 .lang.on{border-color:var(--g)}
 .lang .ur{font-family:"Noto Nastaliq Urdu",serif;font-size:19px}
 button[disabled]{opacity:.4}
+#pinIn::placeholder{letter-spacing:normal;font-size:16px}
 #printArea{display:none}
 .burger{font-size:20px;padding:6px 12px}
 #dOver{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;display:none}
@@ -398,6 +399,15 @@ const D={
 'Aam elaan':['عام اعلان','General notice'],'Elaan ka paigham':['اعلان کا پیغام','Notice message'],'Unwan':['عنوان','Title'],
 'Qisam':['قسم','Type'],'Zakat':['زکوٰۃ','Zakat'],'Sadqa':['صدقہ','Sadqa'],'Atiya':['عطیہ','Donation'],
 'Aamdani aur kharch (12 mahine)':['آمدنی اور خرچ (12 مہینے)','Income and expense (12 months)'],'Aamdani':['آمدنی','Income'],'Kharch':['خرچ','Expense'],
+// v7
+'Nayi raqam kis mahine se':['نئی رقم کس مہینے سے','New amount from month'],
+'Sab members ka chanda badlein':['سب ممبرز کا چندہ تبدیل کریں','Change amount for all members'],
+'Nayi raqam Rs':['نئی رقم روپے','New amount Rs'],
+'Sab active members ka chanda badal jayega. Theek hai?':['سب فعال ممبرز کا چندہ بدل جائے گا۔ ٹھیک ہے؟','Amount will change for all active members. OK?'],
+'Chande ki tareekh-war raqam':['چندے کی تاریخ وار رقم','Amount history'],
+'Raseed No.':['رسید نمبر','Receipt No.'],
+'PIN lock (khali chhorein = band)':['پن لاک (خالی چھوڑیں = بند)','PIN lock (leave empty = off)'],
+'PIN likhein':['پن لکھیں','Enter PIN'],'Ghalat PIN':['غلط پن','Wrong PIN'],'Kholein':['کھولیں','Unlock'],
 // Excel
 'Khulasa':['خلاصہ','Summary'],'Shuru ka balance':['شروع کا بیلنس','Opening balance'],'Loan wapsi':['قرض واپسی','Loan returns'],
 'Kul aamdani':['کل آمدنی','Total income'],'Kul kharch':['کل خرچ','Total expense'],'Is muddat ki bachat':['اس مدت کی بچت','Net for period'],
@@ -521,7 +531,7 @@ const MSG={
    return LANG==='ur'?`السلام علیکم ${m.name} صاحب،\n${s.name} کی طرف سے یاد دہانی:\nآپ کا چندہ باقی ہے: ${lst}\nکل: ${tot}\nمہربانی فرما کر جلد جمع کروا دیں۔ جزاک اللہ`
    :LANG==='en'?`Assalam o Alaikum ${m.name},\nReminder from ${s.name}:\nYour contribution is pending: ${lst}\nTotal: ${tot}\nKindly pay at your earliest. JazakAllah`
    :`Assalam o Alaikum ${m.name} sahab,\n${s.name} ki taraf se yaad-dihani:\nAap ka chanda baqi hai: ${lst}\nKul: ${tot}\nMehrbani farma kar jald jama karwa dein. JazakAllah`},
- receipt:(m,months,b,n,s)=>{const mo=months.map(mLabel).join(', '),am=rs(b.amount*n)+' ('+(b.method==='online'?L('Online'):L('Cash'))+')',tx=b.txn?'\nTxn ID: '+b.txn:'';
+ receipt:(m,months,b,n,s)=>{const mo=months.map(mLabel).join(', ')+(b.rno?'\n'+L('Raseed No.')+' #'+String(b.rno).padStart(4,'0'):''),am=rs(b.amount*n)+' ('+(b.method==='online'?L('Online'):L('Cash'))+')',tx=b.txn?'\nTxn ID: '+b.txn:'';
    return LANG==='ur'?`السلام علیکم ${m.name} صاحب،\n${s.name}\n✅ چندہ وصول ہوا\nمہینہ: ${mo}\nرقم: ${am}${tx}\nتاریخ: ${fd(b.date)}\nجزاک اللہ`
    :LANG==='en'?`Assalam o Alaikum ${m.name},\n${s.name}\n✅ Payment received\nMonth: ${mo}\nAmount: ${am}${tx}\nDate: ${fd(b.date)}\nJazakAllah`
    :`Assalam o Alaikum ${m.name} sahab,\n${s.name}\n✅ Chanda wusool hua\nMahina: ${mo}\nRaqam: ${am}${tx}\nTareekh: ${fd(b.date)}\nJazakAllah`},
@@ -564,7 +574,7 @@ function lapsed(m){const n=S().lapse;return n>0&&memberArrears(m).length>=n}
 function fineInfo(m){ // fine incurred for months not fully paid by their due date
   const s=S();if(!s.fine||m.active===false)return {inc:0,paid:0,due:0};
   let mm=ym(m.joined||today()),inc=0;const t=today();
-  while(mm<=ym()){const dd=dueDateOf(mm);if(t>dd){const amt=+m.amount||s.defAmount;
+  while(mm<=ym()){const dd=dueDateOf(mm);if(t>dd){const amt=amtFor(m,mm);
       const onTime=list('payment').filter(p=>p.member===m.id&&p.month===mm&&p.date<=dd).reduce((a,p)=>a+(+p.amount||0),0);
       if(onTime<amt)inc+=s.fine;}mm=addM(mm,1)}
   const paid=list('payment').filter(p=>p.member===m.id).reduce((a,p)=>a+(+p.fine||0),0);
@@ -572,17 +582,18 @@ function fineInfo(m){ // fine incurred for months not fully paid by their due da
 }
 function specialDue(d){if(!(+d.special))return [];
   return list('member').filter(m=>m.active!==false&&(!m.joined||m.joined<=d.date)&&m.id!==d.member).map(m=>({m,paid:list('spay').filter(p=>p.death===d.id&&p.member===m.id).reduce((a,p)=>a+(+p.amount||0),0)}));}
+function amtFor(m,month){const r=(m.rates||[]).filter(x=>x.from<=month).sort((a,b)=>a.from.localeCompare(b.from)).pop();return r?+r.amount:(+m.amount||S().defAmount)}
 function paidFor(memberId,month){return list('payment').filter(p=>p.member===memberId&&p.month===month).reduce((a,p)=>a+(+p.amount||0),0)}
 function dueList(month){
   return list('member').filter(m=>m.active!==false&&(!m.joined||ym(m.joined)<=month)).map(m=>{
-    const amt=+m.amount||S().defAmount, paid=paidFor(m.id,month);
+    const amt=amtFor(m,month), paid=paidFor(m.id,month);
     return {m,amt,paid,left:amt-paid};
   }).filter(x=>x.left>0);
 }
 function memberArrears(m){
   if(m.active===false)return [];
   const cur=ym(); let mm=ym(m.joined||today()), out=[];
-  while(mm<=cur){const amt=+m.amount||S().defAmount,left=amt-paidFor(m.id,mm);if(left>0)out.push({month:mm,left});mm=addM(mm,1)}
+  while(mm<=cur){const amt=amtFor(m,mm),left=amt-paidFor(m.id,mm);if(left>0)out.push({month:mm,left});mm=addM(mm,1)}
   return out;
 }
 function loanLeft(l){return (+l.amount||0)-list('loanpay').filter(p=>p.loan===l.id).reduce((a,p)=>a+(+p.amount||0),0)}
@@ -608,7 +619,13 @@ function go(v){CUR=v;document.querySelectorAll('nav a').forEach(a=>a.classList.t
   $('#fab').style.display=['members','pay','deaths','loans','expenses','income','officers'].includes(v)?'block':'none';
   (V[v]||V.home)(); window.scrollTo(0,0);}
 function fabAct(){({members:()=>memberForm(),pay:()=>payForm(),deaths:()=>deathForm(),loans:()=>loanForm(),expenses:()=>expForm('expense'),income:()=>expForm('income'),officers:()=>offForm()})[CUR]?.()}
-function boot(){$('#app').style.display='block';applyLang();drawNav();
+function boot(){const pin=(list('settings')[0]||{}).pin;if(pin&&!sessionStorage.getItem('dc_ok')){applyLang();
+  document.body.insertAdjacentHTML('beforeend',`<div id="lock" style="position:fixed;inset:0;background:linear-gradient(135deg,var(--g),var(--gd));z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;color:#fff">
+  <div style="font-size:44px">🔒</div><h2 style="margin:8px 0 18px">${esc(S().name)}</h2><input id="pinIn" type="password" inputmode="numeric" maxlength="6" placeholder="${L('PIN likhein')}" style="text-align:center;font-size:24px;letter-spacing:8px;max-width:220px" onkeyup="if(event.key==='Enter')unlock()">
+  <button class="sec" style="width:220px" onclick="unlock()">${L('Kholein')}</button><p id="pinErr" style="margin-top:10px"></p></div>`);setTimeout(()=>$('#pinIn').focus(),100);return}
+  realBoot()}
+function unlock(){if($('#pinIn').value===(list('settings')[0]||{}).pin){sessionStorage.setItem('dc_ok','1');$('#lock').remove();realBoot()}else{$('#pinErr').textContent=L('Ghalat PIN');$('#pinIn').value=''}}
+function realBoot(){$('#app').style.display='block';applyLang();drawNav();
   $('#demoBar').style.display=DEMO?'block':'none';$('#demoBar').textContent=L('Demo mode: data sirf is phone par hai. Supabase jorne ke baad sab online save hoga.');
   $('#cName').textContent=S().name;$('#todayTxt').textContent=fd(today());go('home');}
 
@@ -655,7 +672,7 @@ function transferForm(){openM(`<h3>⇄ ${L('Cash / Bank transfer')}</h3>
   <h2>${L('Cash / Bank transfer')}</h2><div class="card">${list('transfer').sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`<div class="item"><div><div class="n">${x.dir==='c2b'?L('Cash se Bank'):L('Bank se Cash')}</div><div class="s">${fd(x.date)} ${esc(x.note||'')}</div></div><span>${rs(x.amount)}</span><button class="sm red" onclick="if(confirm(L('Delete?'))){del('${x.id}');transferForm();go(CUR)}">✕</button></div>`).join('')||`<div class="empty">${L('Koi record nahi')}</div>`}</div>
   <button class="full sec" onclick="closeM()">${L('Wapas')}</button>`)}
 async function saveTransfer(){if(!(+val('f_amount')))return alert(L('Raqam likhein'));await save('transfer',{dir:val('f_dir'),amount:+val('f_amount'),date:val('f_date'),note:val('f_note')});closeM();toast(L('Transfer save'));go(CUR)}
-function paidUpTo(m){let mm=ym(m.joined||today()),last=null;const amt=+m.amount||S().defAmount;for(let i=0;i<240;i++){if(paidFor(m.id,mm)>=amt){last=mm;mm=addM(mm,1)}else break}return last}
+function paidUpTo(m){let mm=ym(m.joined||today()),last=null;for(let i=0;i<240;i++){if(paidFor(m.id,mm)>=amtFor(m,mm)){last=mm;mm=addM(mm,1)}else break}return last}
 function advBadge(m){const u=paidUpTo(m);return u&&u>ym()?`<span class="badge">✅ ${mLabel(u)} ${L('tak ada')}</span>`:''}
 function statusBadge(m){const ar=memberArrears(m);
   if(m.died)return `<span class="badge r">${L('Faut')}</span>`;
@@ -681,6 +698,8 @@ function memberForm(id){
   const m=id?get(id):{amount:S().defAmount,joined:today(),active:true,no:(Math.max(0,...list('member').map(x=>+x.no||0))+1)};
   openM(`<h3>${id?L('Member badlein'):L('Naya member')}</h3>
   <div class="row"><div><label>${L('Member No.')}</label><input id="f_no" value="${esc(m.no||'')}"></div><div><label>${L('Mahana chanda (Rs)')}</label><input id="f_amount" type="number" value="${esc(m.amount)}"></div></div>
+  ${id?`<label>${L('Nayi raqam kis mahine se')}</label><input id="f_rfrom" type="month" value="${ym()}">`:''}
+  ${(m.rates||[]).length>1?`<div style="font-size:12px;color:var(--mut);margin-bottom:8px">${L('Chande ki tareekh-war raqam')}: ${m.rates.map(r=>mLabel(r.from)+' '+rs(r.amount)).join(' → ')}</div>`:''}
   <label>${L('Naam *')}</label><input id="f_name" value="${esc(m.name||'')}">
   <label>${L('Walid / Shohar ka naam')}</label><input id="f_father" value="${esc(m.father||'')}">
   <label>${L('Phone (WhatsApp)')}</label><input id="f_phone" type="tel" value="${esc(m.phone||'')}" placeholder="03xxxxxxxxx">
@@ -703,10 +722,12 @@ function memberForm(id){
 async function saveMember(id){
   if(!val('f_name'))return alert(L('Naam likhein'));
   const fam=readFam(),s=S(),old=id?get(id):{},fe=document.getElementById('f_family');
+  const newAmt=+val('f_amount')||s.defAmount;let rates=old.rates||[];
+  if(id&&+old.amount!==newAmt){if(!rates.length)rates=[{from:ym(old.joined||today()),amount:+old.amount||s.defAmount}];const rf=val('f_rfrom')||ym();rates=rates.filter(r=>r.from<rf).concat([{from:rf,amount:newAmt}])}
   if(s.maxFam&&fam.filter(f=>!f.died).length>s.maxFam&&!confirm(L('Afraad ki had se ziyada hain. Phir bhi save karein?')))return;
   if(!id&&s.maxAge&&val('f_dob')&&ageOf(val('f_dob'))>s.maxAge&&!confirm(L('Umar had se ziyada hai. Phir bhi save karein?')))return;
   await save('member',{...old,id:id||undefined,no:val('f_no'),name:val('f_name'),father:val('f_father'),phone:val('f_phone'),cnic:val('f_cnic'),address:val('f_address'),dob:val('f_dob'),fam,family:fe?fe.value.trim():'',
-    nom:val('f_nom'),nomrel:val('f_nomrel'),nomph:val('f_nomph'),joined:val('f_joined'),amount:+val('f_amount')||S().defAmount,active:$('#f_active').checked});
+    nom:val('f_nom'),nomrel:val('f_nomrel'),nomph:val('f_nomph'),joined:val('f_joined'),amount:newAmt,rates,active:$('#f_active').checked});
   closeM();toast(L('Save ho gaya'));go(CUR);
 }
 function memberView(id){
@@ -739,8 +760,8 @@ async function saveLeave(id){if(!confirm(L('Member ki membership band ho jayegi.
   await save('member',{...m,active:false,left:val('f_date'),leftWhy:val('f_why'),refund:ref});
   if(ref)await save('expense',{title:L('Wapsi')+': '+m.name,amount:ref,date:val('f_date'),acct:val('f_acct'),member:id,refund:true});
   toast(L('Save ho gaya'));go(CUR);memberView(id)}
-function ledger(m){const rows=[];let mm=ym(m.joined||today());const end=[ym(),...list('payment').filter(p=>p.member===m.id).map(p=>p.month)].sort().pop();const amt=+m.amount||S().defAmount;
-  while(mm<=end){const ps=list('payment').filter(p=>p.member===m.id&&p.month===mm);rows.push({month:mm,due:amt,paid:ps.reduce((a,p)=>a+(+p.amount||0),0),fine:ps.reduce((a,p)=>a+(+p.fine||0),0),date:ps.map(p=>p.date).sort().pop()||''});mm=addM(mm,1)}return rows}
+function ledger(m){const rows=[];let mm=ym(m.joined||today());const end=[ym(),...list('payment').filter(p=>p.member===m.id).map(p=>p.month)].sort().pop();
+  while(mm<=end){const ps=list('payment').filter(p=>p.member===m.id&&p.month===mm);rows.push({month:mm,due:amtFor(m,mm),paid:ps.reduce((a,p)=>a+(+p.amount||0),0),fine:ps.reduce((a,p)=>a+(+p.fine||0),0),date:ps.map(p=>p.date).sort().pop()||''});mm=addM(mm,1)}return rows}
 function printStatement(id){const m=get(id),r=ledger(m),s=S(),sp=list('spay').filter(p=>p.member===id),fi=fineInfo(m);
   printHTML(`<div class="pc" style="max-width:560px"><div class="ph">${esc(s.name)}<br><small>${L('Khata (statement)')} – ${esc(m.no?m.no+'. ':'')}${esc(m.name)}</small></div>
   <table><tr><td><b>${L('Mahina')}</b></td><td><b>${L('Wajib')}</b></td><td><b>${L('Ada')}</b></td><td><b>${L('Jurmana')}</b></td><td><b>${L('Tareekh')}</b></td></tr>
@@ -762,7 +783,7 @@ function printCard(id){const m=get(id),s=S();
   <div class="sig">${L('Dastakhat')}: ____________</div></div>`)}
 function printReceipt(id){const p=get(id),m=get(p.member)||{},s=S();
   printHTML(`<div class="pc"><div class="ph">${esc(s.name)}<br><small>${L('Raseed')}</small></div>
-  <table><tr><td>${L('Member')}</td><td><b>${esc(m.no?m.no+'. ':'')}${esc(m.name||'')}</b></td></tr><tr><td>${L('Mahina')}</td><td>${mLabel(p.month)}</td></tr>
+  <table>${p.rno?`<tr><td>${L('Raseed No.')}</td><td><b>#${String(p.rno).padStart(4,'0')}</b></td></tr>`:''}<tr><td>${L('Member')}</td><td><b>${esc(m.no?m.no+'. ':'')}${esc(m.name||'')}</b></td></tr><tr><td>${L('Mahina')}</td><td>${mLabel(p.month)}</td></tr>
   <tr><td>${L('Raqam')}</td><td><b>${rs(p.amount)}</b></td></tr>${+p.fine?`<tr><td>${L('Jurmana')}</td><td>${rs(p.fine)}</td></tr>`:''}
   <tr><td>${L('Tareeqa')}</td><td>${methodTxt(p)}</td></tr><tr><td>${L('Tareekh')}</td><td>${fd(p.date)}</td></tr>
   ${p.coll?`<tr><td>${L('Jis ne paise liye')}</td><td>${esc(p.coll)}</td></tr>`:''}</table>
@@ -774,7 +795,7 @@ function remind(id){
 }
 
 /* ---------- PAYMENTS ---------- */
-function payItem(p){return `<div class="item" onclick="payForm('${p.id}')" style="cursor:pointer"><div><div class="n">${esc(memName(p.member))}</div><div class="s">${mLabel(p.month)} · ${fd(p.date)} · ${methodTxt(p)}</div></div><span class="amt-g">${rs(p.amount)}</span></div>`}
+function payItem(p){return `<div class="item" onclick="payForm('${p.id}')" style="cursor:pointer"><div><div class="n">${esc(memName(p.member))}${p.rno?` <span style="font-size:11px;color:var(--mut)">#${String(p.rno).padStart(4,'0')}</span>`:''}</div><div class="s">${mLabel(p.month)} · ${fd(p.date)} · ${methodTxt(p)}</div></div><span class="amt-g">${rs(p.amount)}</span></div>`}
 V.pay=()=>{
   const m=FILT.pm||ym();
   const ps=list('payment').filter(p=>p.month===m).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
@@ -808,13 +829,14 @@ function payForm(id,mem,month){
   <button class="full sec" onclick="closeM()">${L('Wapas')}</button>`);
   if(!id&&p.member)payAmt();
 }
-function payAmt(){const m=get(val('f_member'));if(!m)return;$('#f_amount').value=m.amount||S().defAmount;const ar=memberArrears(m);if(ar.length)$('#f_month').value=ar[0].month;
+function payAmt(){const m=get(val('f_member'));if(!m)return;const ar=memberArrears(m);if(ar.length)$('#f_month').value=ar[0].month;$('#f_amount').value=amtFor(m,val('f_month'));
   const fh=document.getElementById('fineHint');if(fh){const fi=fineInfo(m);fh.textContent=fi.due?'('+L('Jurmana baqi')+': '+rs(fi.due)+')':'';if(fi.due)$('#f_fine').value=fi.due}}
 async function savePay(id){
   const mem=val('f_member');if(!mem)return alert(L('Member chunein'));
   const fe=document.getElementById('f_fine'),fine=fe?(+fe.value||0):0;
   const n=id?1:+val('f_count'),base={member:mem,amount:+val('f_amount')||0,date:val('f_date'),method:val('f_method'),txn:val('f_txn'),note:val('f_note'),coll:collVal(),t:Date.now()};
-  const months=[];for(let i=0;i<n;i++){const mm=addM(val('f_month'),i);months.push(mm);await save('payment',{...base,fine:i===0?fine:0,id:id||undefined,month:mm})}
+  const months=[];const old=id?get(id):null;if(!id)base.rno=Math.max(0,...list('payment').map(p=>+p.rno||0))+1;else base.rno=old.rno;
+  for(let i=0;i<n;i++){const mm=addM(val('f_month'),i);months.push(mm);await save('payment',{...base,fine:i===0?fine:0,id:id||undefined,month:mm})}
   const m=get(mem);
   if($('#f_wa').checked&&m.phone)wa(m.phone,MSG.receipt(m,months,base,n,S()));
   closeM();toast(L('Chanda save ho gaya'));go(CUR);
@@ -901,7 +923,7 @@ function deathView(id){
   <button class="full sec" onclick="announceAll('${id}')">${L('Sab members ko (ek ek kar ke)')}</button>
   ${+d.special?`<h2>${L('Khaas chanda')}: ${rs(d.special)} · ${L('Kul jama')} <span class="amt-g">${rs(got)}</span></h2>
   <div class="card">${sd.map(x=>`<div class="item"><div><div class="n">${esc(x.m.name)}</div><div class="s">${x.paid>=d.special?'✅ '+L('diya'):L('nahi diya')}</div></div>
-   ${x.paid>=d.special?`<span class="amt-g">${rs(x.paid)}</span>`:`<div><button class="sm wa" onclick="wa('${esc(x.m.phone||'')}',MSG.special(get('${x.m.id}'),get('${id}'),S()))" ${x.m.phone?'':'disabled'}>WA</button> <button class="sm" onclick="spayForm('${id}','${x.m.id}')">${L('Jama')}</button></div>`}</div>`).join('')||`<div class="empty">${L('Koi nahi')}</div>`}</div>`:''}
+   ${x.paid>=d.special?`<div><span class="amt-g">${rs(x.paid)}</span> <button class="sm sec" onclick="spayForm('${id}','${x.m.id}','${(list('spay').find(p=>p.death===id&&p.member===x.m.id)||{}).id}')">✏️</button></div>`:`<div><button class="sm wa" onclick="wa('${esc(x.m.phone||'')}',MSG.special(get('${x.m.id}'),get('${id}'),S()))" ${x.m.phone?'':'disabled'}>WA</button> <button class="sm" onclick="spayForm('${id}','${x.m.id}')">${L('Jama')}</button></div>`}</div>`).join('')||`<div class="empty">${L('Koi nahi')}</div>`}</div>`:''}
   <button class="full" onclick="deathForm('${id}')">✏️ ${L('Badlein')}</button><button class="full sec" onclick="closeM()">${L('Wapas')}</button>`);
 }
 function announceAll(id){RQ=list('member').filter(m=>m.active!==false&&m.phone).map(m=>m.id);AQ=id;nextAnn()}
@@ -910,13 +932,15 @@ function nextAnn(){if(!RQ.length){deathView(AQ);return toast(L('Sab ko bhej diya
   openM(`<h3>📢 ${L('Wafat ka elaan')}</h3><p>${RQ.length} ${L('baqi. Agla:')} <b>${esc(m.name)}</b></p>
   <button class="full wa" onclick="wa(get(RQ[0]).phone,MSG.death(get(AQ),S()));RQ.shift();nextAnn()">${L('Bhejein')}</button>
   <button class="full sec" onclick="RQ.shift();nextAnn()">${L('Chhor dein')}</button><button class="full sec" onclick="RQ=[];deathView(AQ)">${L('Band karein')}</button>`)}
-function spayForm(did,mid){const d=get(did);
+function spayForm(did,mid,sid){const d=get(did),sp=sid&&sid!=='undefined'?get(sid):null;
   openM(`<h3>${L('Khaas chanda')}: ${esc(get(mid).name)}</h3><div class="s" style="color:var(--mut)">🕊️ ${esc(d.name)}</div>
-  <label>${L('Raqam Rs *')}</label><input id="f_amount" type="number" value="${d.special}"><label>${L('Tareekh')}</label><input id="f_date" type="date" value="${today()}">
-  ${acctSel('cash','Kahan aaya')}${collSel('')}
-  <button class="full" onclick="saveSpay('${did}','${mid}')">${L('Save')}</button><button class="full sec" onclick="deathView('${did}')">${L('Wapas')}</button>`)}
-async function saveSpay(did,mid){const a=+val('f_amount');if(!a)return alert(L('Raqam likhein'));
-  await save('spay',{death:did,member:mid,amount:a,date:val('f_date'),acct:val('f_acct'),coll:collVal()});toast(L('Khaas chanda save'));deathView(did)}
+  <label>${L('Raqam Rs *')}</label><input id="f_amount" type="number" value="${sp?sp.amount:d.special}"><label>${L('Tareekh')}</label><input id="f_date" type="date" value="${sp?sp.date:today()}">
+  ${acctSel(sp?sp.acct:'cash','Kahan aaya')}${collSel(sp?sp.coll:'')}
+  <button class="full" onclick="saveSpay('${did}','${mid}','${sp?sp.id:''}')">${L('Save')}</button>
+  ${sp?`<button class="full red" onclick="if(confirm(L('Delete?'))){del('${sp.id}').then(()=>deathView('${did}'))}">${L('Delete')}</button>`:''}
+  <button class="full sec" onclick="deathView('${did}')">${L('Wapas')}</button>`)}
+async function saveSpay(did,mid,sid){const a=+val('f_amount');if(!a)return alert(L('Raqam likhein'));
+  await save('spay',{id:sid||undefined,death:did,member:mid,amount:a,date:val('f_date'),acct:val('f_acct'),coll:collVal()});toast(L('Khaas chanda save'));deathView(did)}
 
 /* ---------- LOANS ---------- */
 V.loans=()=>{
@@ -1026,6 +1050,7 @@ V.settings=()=>{
   <label>${L('Har mahine chanda jama karne ki aakhri tareekh (1-28)')}</label><input id="s_due" type="number" min="1" max="28" value="${s.dueDay}">
   <label>${L('Aam mahana chanda Rs')}</label><input id="s_amt" type="number" value="${s.defAmount}">
   <label>${L('Admin ka WhatsApp number (baqaya list ke liye)')}</label><input id="s_phone" value="${esc(s.phone)}">
+  <label>🔒 ${L('PIN lock (khali chhorein = band)')}</label><input id="s_pin" type="password" inputmode="numeric" maxlength="6" value="${esc((list('settings')[0]||{}).pin||'')}">
   <label>${L('Wasooli wale (comma se alag naam)')}</label><input id="s_coll" value="${esc(s.collectors.join(', '))}" placeholder="Ahmed, Bilal">
   <div class="row"><div><label>${L('Shuru ka cash Rs')}</label><input id="s_oc" type="number" value="${s.openCash||''}"></div><div><label>${L('Shuru ka bank balance Rs')}</label><input id="s_ob" type="number" value="${s.openBank||''}"></div></div>
   <b style="display:block;margin:6px 0">📜 ${L('Qawaid (Rules)')}</b>
@@ -1037,6 +1062,9 @@ V.settings=()=>{
   <b style="display:block;margin:6px 0">💰 ${L('Muqarrar raqam (rishte ke hisaab se)')}</b>
   ${BENK.map(([k,l])=>`<div class="row"><label style="flex:1.2;padding-top:14px">${L(l)}</label><input id="s_ben_${k}" type="number" min="0" value="${s.ben[k]||''}"></div>`).join('')}
   <button class="full" onclick="saveSet()">${L('Save')}</button></div>
+  <div class="card"><b>💱 ${L('Sab members ka chanda badlein')}</b>
+  <div class="row"><div><label>${L('Nayi raqam Rs')}</label><input id="b_amt" type="number"></div><div><label>${L('Nayi raqam kis mahine se')}</label><input id="b_from" type="month" value="${addM(ym(),1)}"></div></div>
+  <button class="full sec" onclick="bulkRate()">${L('Save')}</button></div>
   <div class="card"><b>📱 ${L('App phone par install karein')}</b><p style="color:var(--mut);font-size:13px;margin-top:4px">${L('Chrome menu (⋮) mein "Add to Home screen" dabayein')}</p>${window._inst?`<button class="full" onclick="_inst.prompt()">📱 ${L('App phone par install karein')}</button>`:''}</div>
   <div class="card"><b>🌐 ${L('Zubaan / Language')}</b><button class="full sec" onclick="langPop()">${LN[LANG]}</button></div>
   <div class="card"><b>${L('Backup')}</b><p style="color:var(--mut);font-size:13px;margin:4px 0">${L('Saara data ek file mein')}</p>
@@ -1046,7 +1074,11 @@ V.settings=()=>{
   <button class="full sec" onclick="importTpl()">⬇️ ${L('Template download')}</button>
   <label style="display:block;margin-top:10px">${L('File chunein (Excel ya CSV)')}</label><input type="file" accept=".xlsx,.xls,.csv" onchange="importReg(this.files[0])"></div></div>`;
 };
-async function saveSet(){const s=S();await save('settings',{id:s.id,name:val('s_name')||'Death Committee',dueDay:Math.min(28,Math.max(1,+val('s_due')||10)),defAmount:+val('s_amt')||500,phone:val('s_phone'),
+async function bulkRate(){const a=+val('b_amt'),rf=val('b_from');if(!a||!rf)return alert(L('Raqam likhein'));if(!confirm(L('Sab active members ka chanda badal jayega. Theek hai?')))return;
+  for(const m of list('member').filter(m=>m.active!==false)){let rates=m.rates&&m.rates.length?m.rates:[{from:ym(m.joined||today()),amount:+m.amount||S().defAmount}];
+    rates=rates.filter(r=>r.from<rf).concat([{from:rf,amount:a}]);await save('member',{...m,amount:a,rates})}
+  const st=list('settings')[0]||{};await save('settings',{...st,defAmount:a});toast(L('Save ho gaya'));V.settings()}
+async function saveSet(){const s=S();await save('settings',{...(list('settings')[0]||{}),id:s.id,pin:val('s_pin'),name:val('s_name')||'Death Committee',dueDay:Math.min(28,Math.max(1,+val('s_due')||10)),defAmount:+val('s_amt')||500,phone:val('s_phone'),
   collectors:val('s_coll'),openCash:+val('s_oc')||0,openBank:+val('s_ob')||0,waitM:+val('s_wait')||0,fine:+val('s_fine')||0,lapse:+val('s_lapse')||0,maxFam:+val('s_maxfam')||0,maxAge:+val('s_maxage')||0,ben:Object.fromEntries(BENK.map(([k])=>[k,+val('s_ben_'+k)||0])),lastBackup:s.lastBackup});$('#cName').textContent=S().name;toast(L('Settings save'))}
 function backup(){const s=list('settings')[0]||{};save('settings',{...s,lastBackup:new Date().toISOString()});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(ROWS)],{type:'application/json'}));a.download='death-committee-backup-'+today()+'.json';a.click()}
 const IMPH=['Member No','Naam','Walid / Shohar','Phone','CNIC','Pata','Mahana chanda','Shamil (YYYY-MM-DD)','Ada shuda aakhri mahina (YYYY-MM)'];
@@ -1098,12 +1130,12 @@ function exportX(){
   const add=(name,rows)=>{const ws=XLSX.utils.aoa_to_sheet(rows.length>1?rows:[...rows,[L('(koi record nahi)')]]);if(LANG==='ur')ws['!views']=[{RTL:true}];XLSX.utils.book_append_sheet(wb,ws,L(name).slice(0,31))};
   const H=a=>a.map(L);
   add('Khulasa',[[s.name+' - '+r.label],[],[L('Shuru ka balance'),opening],[L('Chanda'),t.pay],[L('Jurmana'),t.fine],[L('Khaas chanda'),t.spay],[L('Doosri aamdani'),t.inc],[L('Loan wapsi'),t.lr],[L('Kul aamdani'),t.in],[],[L('Wafat kharch'),t.dth],[L('Loan diye'),t.ln],[L('Doosre kharche'),t.exp],[L('Kul kharch'),t.out],[],[L('Is muddat ki bachat'),t.bal],[L('Aakhri balance'),opening+t.bal],[],[L('Cash (haath mein)')+' ('+fd(today())+')',accBal().cash],[L('Bank / Easypaisa')+' ('+fd(today())+')',accBal().bank]]);
-  add('Chanda',[H(['Tareekh','Member No','Member','Mahina','Raqam','Jurmana','Tareeqa','Txn ID','Wasooli','Note']),...list('payment').filter(p=>inR(p.date)).sort((a,b)=>a.date.localeCompare(b.date)).map(p=>{const m=get(p.member)||{};return [p.date,m.no||'',m.name||'',mLabel(p.month),+p.amount,+p.fine||0,p.method==='online'?L('Online'):L('Cash'),p.txn||'',p.coll||'',p.note||'']})]);
+  add('Chanda',[H(['Raseed No.','Tareekh','Member No','Member','Mahina','Raqam','Jurmana','Tareeqa','Txn ID','Wasooli','Note']),...list('payment').filter(p=>inR(p.date)).sort((a,b)=>a.date.localeCompare(b.date)).map(p=>{const m=get(p.member)||{};return [p.rno?'#'+String(p.rno).padStart(4,'0'):'',p.date,m.no||'',m.name||'',mLabel(p.month),+p.amount,+p.fine||0,p.method==='online'?L('Online'):L('Cash'),p.txn||'',p.coll||'',p.note||'']})]);
   add('Khaas chande',[H(['Tareekh','Marhoom','Member','Raqam','Account','Wasooli']),...list('spay').filter(p=>inR(p.date)).map(p=>[p.date,(get(p.death)||{}).name||'',memName(p.member),+p.amount,acctTxt(acctOf(p)),p.coll||''])]);
   const cg={};[...list('payment'),...list('spay')].filter(p=>inR(p.date)&&p.coll).forEach(p=>cg[p.coll]=(cg[p.coll]||0)+(+p.amount||0)+(+p.fine||0));
   add('Wasooli',[H(['Wasooli','Kul jama']),...Object.entries(cg)]);
   const grid=[[...H(['Member No','Member','Phone']),...r.months.map(mLabel),L('Kul diya (Rs)'),L('baqi')]];
-  list('member').sort((a,b)=>(+a.no||1e9)-(+b.no||1e9)).forEach(m=>{let tot=0,left=0;const cells=r.months.map(mm=>{const pd=paidFor(m.id,mm);tot+=pd;const active=m.active!==false&&(!m.joined||ym(m.joined)<=mm);if(active&&mm<=ym())left+=Math.max(0,(+m.amount||s.defAmount)-pd);return active?pd:'-'});grid.push([m.no||'',m.name,m.phone||'',...cells,tot,left])});
+  list('member').sort((a,b)=>(+a.no||1e9)-(+b.no||1e9)).forEach(m=>{let tot=0,left=0;const cells=r.months.map(mm=>{const pd=paidFor(m.id,mm);tot+=pd;const active=m.active!==false&&(!m.joined||ym(m.joined)<=mm);if(active&&mm<=ym())left+=Math.max(0,amtFor(m,mm)-pd);return active?pd:'-'});grid.push([m.no||'',m.name,m.phone||'',...cells,tot,left])});
   add('Member-wise',grid);
   add('Members',[H(['Member No','Naam','Phone','CNIC','Ghar ka pata','Shamil','Ghar ke afraad','Waris / Nominee','Chhor diya']),...list('member').sort((a,b)=>(+a.no||1e9)-(+b.no||1e9)).map(m=>[m.no||'',m.name,m.phone||'',m.cnic||'',m.address||'',m.joined||'',(m.fam||[]).map(f=>f.name+' ('+L(f.rel)+(f.died?', '+L('Faut'):'')+')').join(', ')+(m.family?' '+m.family:''),m.nom?m.nom+' ('+(m.nomrel||'')+') '+(m.nomph||''):'',m.left||(m.died?L('Faut'):'')])]);
   const bq=[H(['Mahina','Member No','Member','Phone','Baqi raqam'])];r.months.filter(mm=>mm<=ym()).forEach(mm=>dueList(mm).forEach(x=>bq.push([mLabel(mm),x.m.no||'',x.m.name,x.m.phone||'',x.left])));add('Baqaya',bq);
