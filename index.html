@@ -619,12 +619,13 @@ function go(v){CUR=v;document.querySelectorAll('nav a').forEach(a=>a.classList.t
   $('#fab').style.display=['members','pay','deaths','loans','expenses','income','officers'].includes(v)?'block':'none';
   (V[v]||V.home)(); window.scrollTo(0,0);}
 function fabAct(){({members:()=>memberForm(),pay:()=>payForm(),deaths:()=>deathForm(),loans:()=>loanForm(),expenses:()=>expForm('expense'),income:()=>expForm('income'),officers:()=>offForm()})[CUR]?.()}
-function boot(){const pin=(list('settings')[0]||{}).pin;if(pin&&!sessionStorage.getItem('dc_ok')){applyLang();
+const PIN=()=>{const v=(list('settings')[0]||{}).pin;return v===undefined?'1234':v};
+function boot(){const pin=PIN();if(pin&&!sessionStorage.getItem('dc_ok')){applyLang();
   document.body.insertAdjacentHTML('beforeend',`<div id="lock" style="position:fixed;inset:0;background:linear-gradient(135deg,var(--g),var(--gd));z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;color:#fff">
   <div style="font-size:44px">🔒</div><h2 style="margin:8px 0 18px">${esc(S().name)}</h2><input id="pinIn" type="password" inputmode="numeric" maxlength="6" placeholder="${L('PIN likhein')}" style="text-align:center;font-size:24px;letter-spacing:8px;max-width:220px" onkeyup="if(event.key==='Enter')unlock()">
   <button class="sec" style="width:220px" onclick="unlock()">${L('Kholein')}</button><p id="pinErr" style="margin-top:10px"></p></div>`);setTimeout(()=>$('#pinIn').focus(),100);return}
   realBoot()}
-function unlock(){if($('#pinIn').value===(list('settings')[0]||{}).pin){sessionStorage.setItem('dc_ok','1');$('#lock').remove();realBoot()}else{$('#pinErr').textContent=L('Ghalat PIN');$('#pinIn').value=''}}
+function unlock(){if($('#pinIn').value===PIN()){sessionStorage.setItem('dc_ok','1');$('#lock').remove();realBoot()}else{$('#pinErr').textContent=L('Ghalat PIN');$('#pinIn').value=''}}
 function realBoot(){$('#app').style.display='block';applyLang();drawNav();
   $('#demoBar').style.display=DEMO?'block':'none';$('#demoBar').textContent=L('Demo mode: data sirf is phone par hai. Supabase jorne ke baad sab online save hoga.');
   $('#cName').textContent=S().name;$('#todayTxt').textContent=fd(today());go('home');}
@@ -1050,7 +1051,7 @@ V.settings=()=>{
   <label>${L('Har mahine chanda jama karne ki aakhri tareekh (1-28)')}</label><input id="s_due" type="number" min="1" max="28" value="${s.dueDay}">
   <label>${L('Aam mahana chanda Rs')}</label><input id="s_amt" type="number" value="${s.defAmount}">
   <label>${L('Admin ka WhatsApp number (baqaya list ke liye)')}</label><input id="s_phone" value="${esc(s.phone)}">
-  <label>🔒 ${L('PIN lock (khali chhorein = band)')}</label><input id="s_pin" type="password" inputmode="numeric" maxlength="6" value="${esc((list('settings')[0]||{}).pin||'')}">
+  <label>🔒 ${L('PIN lock (khali chhorein = band)')}</label><input id="s_pin" type="password" inputmode="numeric" maxlength="6" value="${esc(PIN())}">
   <label>${L('Wasooli wale (comma se alag naam)')}</label><input id="s_coll" value="${esc(s.collectors.join(', '))}" placeholder="Ahmed, Bilal">
   <div class="row"><div><label>${L('Shuru ka cash Rs')}</label><input id="s_oc" type="number" value="${s.openCash||''}"></div><div><label>${L('Shuru ka bank balance Rs')}</label><input id="s_ob" type="number" value="${s.openBank||''}"></div></div>
   <b style="display:block;margin:6px 0">📜 ${L('Qawaid (Rules)')}</b>
