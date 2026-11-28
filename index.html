@@ -135,7 +135,7 @@ const D={
 'Settings':['سیٹنگز','Settings'],
 'Home':['ہوم','Home'],
 'Members':['ممبرز','Members'],
-'Chanda':['چندہ','Payments'],
+'Chanda':['چندہ','Collection'],
 'Mazeed':['مزید','More'],
 'ka baqaya':['کا بقایا','dues'],
 'members ne abhi poora nahi diya':['ممبرز نے ابھی پورا نہیں دیا','members have not paid in full'],
@@ -175,7 +175,7 @@ const D={
 'Save nahi hua':['محفوظ نہیں ہوا','Not saved'],
 'Shamil':['شمولیت','Joined'],
 'Sab clear':['سب کلیئر','All clear'],
-'Chande':['چندے','Payments'],
+'Chande':['چندے','Collections'],
 'Koi nahi':['کوئی نہیں','None'],
 'Badlein':['تبدیل کریں','Edit'],
 'Is member ka phone number nahi hai':['اس ممبر کا فون نمبر نہیں ہے','This member has no phone number'],
@@ -421,7 +421,8 @@ const MN={ro:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov',
  en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
  ur:['جنوری','فروری','مارچ','اپریل','مئی','جون','جولائی','اگست','ستمبر','اکتوبر','نومبر','دسمبر']};
 let LANG=localStorage.getItem('dc_lang')||'ro';
-function L(s){if(LANG==='ro')return s;const d=D[s];return d?(LANG==='ur'?d[0]:d[1]):s}
+const COL=t=>String(t).replace(/\bChande\b/g,'Collections').replace(/\bchande\b/g,'collections').replace(/\bChanda\b/g,'Collection').replace(/\bchanda\b/g,'collection');
+function L(s){if(LANG==='ro')return COL(s);const d=D[s];return d?(LANG==='ur'?d[0]:d[1]):s}
 const LN={ro:'Roman Urdu',ur:'اردو',en:'English'};
 function applyLang(){
   document.documentElement.dir=LANG==='ur'?'rtl':'ltr';
@@ -431,7 +432,7 @@ function applyLang(){
 }
 function langPop(){
   openM(`<h3>🌐 Zubaan chunein / زبان / Language</h3>
-  ${['ro','ur','en'].map(k=>`<button class="lang ${k===LANG&&localStorage.getItem('dc_lang')?'on':''}" onclick="setLang('${k}')"><span class="${k==='ur'?'ur':''}">${LN[k]}</span><span>${k==='ro'?'Aap ka chanda':k==='ur'?'<span class=ur>آپ کا چندہ</span>':'Your payment'}</span></button>`).join('')}`);
+  ${['ro','ur','en'].map(k=>`<button class="lang ${k===LANG&&localStorage.getItem('dc_lang')?'on':''}" onclick="setLang('${k}')"><span class="${k==='ur'?'ur':''}">${LN[k]}</span><span>${k==='ro'?'Aap ka collection':k==='ur'?'<span class=ur>آپ کا چندہ</span>':'Your payment'}</span></button>`).join('')}`);
 }
 function setLang(k){LANG=k;localStorage.setItem('dc_lang',k);applyLang();closeM();
   if(document.getElementById('app').style.display==='block'){drawNav();$('#todayTxt').textContent=fd(today());$('#demoBar').textContent=L('Demo mode: data sirf is phone par hai. Supabase jorne ke baad sab online save hoga.');go(CUR)}
@@ -530,19 +531,19 @@ const MSG={
  remind:(m,ar,s)=>{const lst=ar.map(x=>mLabel(x.month)+' ('+rs(x.left)+')').join(', '),tot=rs(ar.reduce((a,x)=>a+x.left,0));
    return LANG==='ur'?`السلام علیکم ${m.name} صاحب،\n${s.name} کی طرف سے یاد دہانی:\nآپ کا چندہ باقی ہے: ${lst}\nکل: ${tot}\nمہربانی فرما کر جلد جمع کروا دیں۔ جزاک اللہ`
    :LANG==='en'?`Assalam o Alaikum ${m.name},\nReminder from ${s.name}:\nYour contribution is pending: ${lst}\nTotal: ${tot}\nKindly pay at your earliest. JazakAllah`
-   :`Assalam o Alaikum ${m.name} sahab,\n${s.name} ki taraf se yaad-dihani:\nAap ka chanda baqi hai: ${lst}\nKul: ${tot}\nMehrbani farma kar jald jama karwa dein. JazakAllah`},
+   :`Assalam o Alaikum ${m.name} sahab,\n${s.name} ki taraf se yaad-dihani:\nAap ka collection baqi hai: ${lst}\nKul: ${tot}\nMehrbani farma kar jald jama karwa dein. JazakAllah`},
  receipt:(m,months,b,n,s)=>{const mo=months.map(mLabel).join(', ')+(b.rno?'\n'+L('Raseed No.')+' #'+String(b.rno).padStart(4,'0'):''),am=rs(b.amount*n)+' ('+(b.method==='online'?L('Online'):L('Cash'))+')',tx=b.txn?'\nTxn ID: '+b.txn:'';
    return LANG==='ur'?`السلام علیکم ${m.name} صاحب،\n${s.name}\n✅ چندہ وصول ہوا\nمہینہ: ${mo}\nرقم: ${am}${tx}\nتاریخ: ${fd(b.date)}\nجزاک اللہ`
    :LANG==='en'?`Assalam o Alaikum ${m.name},\n${s.name}\n✅ Payment received\nMonth: ${mo}\nAmount: ${am}${tx}\nDate: ${fd(b.date)}\nJazakAllah`
-   :`Assalam o Alaikum ${m.name} sahab,\n${s.name}\n✅ Chanda wusool hua\nMahina: ${mo}\nRaqam: ${am}${tx}\nTareekh: ${fd(b.date)}\nJazakAllah`},
+   :`Assalam o Alaikum ${m.name} sahab,\n${s.name}\n✅ Collection wusool hua\nMahina: ${mo}\nRaqam: ${am}${tx}\nTareekh: ${fd(b.date)}\nJazakAllah`},
  lateList:(m,due,s)=>`${s.name}\n${mLabel(m)} – ${L('Baqaya')}\n\n`+due.map((x,i)=>`${i+1}. ${x.m.name} – ${rs(x.left)}`).join('\n')+`\n\n${L('Kul')}: ${rs(due.reduce((a,x)=>a+x.left,0))}`,
- death:(d,s)=>{const m=get(d.member)||{},sp=+d.special?(LANG==='ur'?`\nخاص چندہ: ہر ممبر ${rs(d.special)}`:LANG==='en'?`\nSpecial contribution: ${rs(d.special)} per member`:`\nKhaas chanda: har member ${rs(d.special)}`):'';
+ death:(d,s)=>{const m=get(d.member)||{},sp=+d.special?(LANG==='ur'?`\nخاص چندہ: ہر ممبر ${rs(d.special)}`:LANG==='en'?`\nSpecial contribution: ${rs(d.special)} per member`:`\nKhaas collection: har member ${rs(d.special)}`):'';
    return LANG==='ur'?`${s.name}\nانا للہ وانا الیہ راجعون\n${d.name} (${d.relation||''}، ${m.name||''}) وفات پا گئے ہیں۔\nتاریخ: ${fd(d.date)}${d.jtime?'\nجنازہ: '+d.jtime:''}${d.jplace?'\nجگہ: '+d.jplace:''}${sp}\nدعائے مغفرت کی درخواست ہے۔`
    :LANG==='en'?`${s.name}\nInna lillahi wa inna ilayhi raji'un\n${d.name} (${d.relation||''}, ${m.name||''}) has passed away.\nDate: ${fd(d.date)}${d.jtime?'\nFuneral: '+d.jtime:''}${d.jplace?'\nPlace: '+d.jplace:''}${sp}\nPlease pray for the deceased.`
    :`${s.name}\nInna lillahi wa inna ilayhi raji'un\n${d.name} (${d.relation||''}, ${m.name||''}) wafat pa gaye hain.\nTareekh: ${fd(d.date)}${d.jtime?'\nJanaza: '+d.jtime:''}${d.jplace?'\nJagah: '+d.jplace:''}${sp}\nDua-e-maghfirat ki darkhwast hai.`},
  special:(m,d,s)=>LANG==='ur'?`السلام علیکم ${m.name} صاحب،\n${s.name}: مرحوم ${d.name} کے لیے خاص چندہ ${rs(d.special)} باقی ہے۔ مہربانی فرما کر جمع کروا دیں۔`
    :LANG==='en'?`Assalam o Alaikum ${m.name},\n${s.name}: special contribution of ${rs(d.special)} for the late ${d.name} is pending. Kindly pay.`
-   :`Assalam o Alaikum ${m.name} sahab,\n${s.name}: marhoom ${d.name} ke liye khaas chanda ${rs(d.special)} baqi hai. Mehrbani farma kar jama karwa dein.`,
+   :`Assalam o Alaikum ${m.name} sahab,\n${s.name}: marhoom ${d.name} ke liye khaas collection ${rs(d.special)} baqi hai. Mehrbani farma kar jama karwa dein.`,
  summary:(m,t,ab,due,s)=>`${s.name}\n${mLabel(m)} – ${L('Hisaab')}\n\n${L('Chanda')}: ${rs(t.pay)}\n${L('Khaas chanda')}: ${rs(t.spay)}\n${L('Jurmana')}: ${rs(t.fine)}\n${L('Doosri aamdani')}: ${rs(t.inc)}\n${L('Loan wapsi')}: ${rs(t.lr)}\n\n${L('Wafat kharch')}: ${rs(t.dth)}\n${L('Loan diye')}: ${rs(t.ln)}\n${L('Doosre kharche')}: ${rs(t.exp)}\n\n${L('Cash (haath mein)')}: ${rs(ab.cash)}\n${L('Bank / Easypaisa')}: ${rs(ab.bank)}\n${L('Committee ke paas kul raqam')}: ${rs(ab.cash+ab.bank)}\n\n${L('Baqaya')}: ${due.length} ${L('members')}`,
  loan:(name,lf,s)=>LANG==='ur'?`السلام علیکم ${name}،\n${s.name} کا قرض باقی: ${rs(lf)}\nمہربانی فرما کر قسط جمع کروا دیں۔`
    :LANG==='en'?`Assalam o Alaikum ${name},\nYour loan balance with ${s.name}: ${rs(lf)}\nKindly pay the installment.`
@@ -1088,11 +1089,11 @@ async function bulkRate(){const a=+val('b_amt'),rf=val('b_from');if(!a||!rf)retu
 async function saveSet(){const s=S();await save('settings',{...(list('settings')[0]||{}),id:s.id,pin:val('s_pin'),name:val('s_name')||'Death Committee',dueDay:Math.min(28,Math.max(1,+val('s_due')||10)),defAmount:+val('s_amt')||500,phone:val('s_phone'),
   collectors:val('s_coll'),openCash:+val('s_oc')||0,openBank:+val('s_ob')||0,waitM:+val('s_wait')||0,fine:+val('s_fine')||0,lapse:+val('s_lapse')||0,maxFam:+val('s_maxfam')||0,maxAge:+val('s_maxage')||0,ben:Object.fromEntries(BENK.map(([k])=>[k,+val('s_ben_'+k)||0])),lastBackup:s.lastBackup});$('#cName').textContent=S().name;toast(L('Settings save'))}
 function backup(){const s=list('settings')[0]||{};save('settings',{...s,lastBackup:today()});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(ROWS)],{type:'application/json'}));a.download='death-committee-backup-'+today()+'.json';a.click()}
-const IMPH=['Member No','Naam','Walid / Shohar','Phone','CNIC','Pata','Mahana chanda','Shamil (YYYY-MM-DD)','Ada shuda aakhri mahina (YYYY-MM)'];
+const IMPH=['Member No','Naam','Walid / Shohar','Phone','CNIC','Pata','Mahana collection','Shamil (YYYY-MM-DD)','Ada shuda aakhri mahina (YYYY-MM)'];
 function importTpl(){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([IMPH,[1,'Muhammad Ali','Ahmed Ali','03001234567','42101-1234567-1','Gali 5',500,'2024-01-01','2026-10']]),'Members');XLSX.writeFile(wb,'Members-template.xlsx')}
 async function importReg(f){if(!f)return;const wb=XLSX.read(await f.arrayBuffer(),{cellDates:true});const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,raw:true});
   const h=rows[0].map(x=>String(x||'').toLowerCase()),col=k=>h.findIndex(x=>x.includes(k));
-  const c={no:col('no'),name:col('naam'),father:col('walid'),phone:col('phone'),cnic:col('cnic'),addr:col('pata'),amt:col('chanda'),join:col('shamil'),paid:col('ada')};
+  const c={no:col('no'),name:col('naam'),father:col('walid'),phone:col('phone'),cnic:col('cnic'),addr:col('pata'),amt:col('chanda')>=0?col('chanda'):col('collection'),join:col('shamil'),paid:col('ada')};
   const dstr=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const nd=v=>{if(v instanceof Date)return dstr(v);v=String(v||'').trim();if(/^\d{4}-\d{2}-\d{2}/.test(v))return v.slice(0,10);const d=new Date(v);return isNaN(d)?today():d.toISOString().slice(0,10)};
   let n=0;for(const r of rows.slice(1)){const gr=k=>c[k]>=0?r[c[k]]:'',g=k=>{const v=gr(k);return v instanceof Date?dstr(v):String(v??'').trim()};if(!g('name'))continue;
